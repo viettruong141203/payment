@@ -15,7 +15,6 @@
       --text-muted: #64748b; 
       --accent-blue: #0284c7; 
       --accent-green: #059669; 
-      --accent-yellow: #d97706; 
       --accent-red: #dc2626;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -30,45 +29,45 @@
 
     .app-container { width: 100%; max-width: 400px; height: 100vh; height: 100dvh; position: relative; z-index: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
     
-    .screen { display: none; flex-direction: column; flex-grow: 1; padding: clamp(16px, 4vw, 24px); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .screen { display: none; flex-direction: column; flex-grow: 1; padding: clamp(12px, 4vw, 20px); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .screen.active { display: flex; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-    .header-title { font-size: 15px; font-weight: 800; text-align: center; margin-bottom: 16px; margin-top: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .header-title { font-size: 14px; font-weight: 800; text-align: center; margin-bottom: 12px; margin-top: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     
-    .card { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: var(--glass-shadow); }
+    .card { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 14px; margin-bottom: 12px; box-shadow: var(--glass-shadow); }
     
     .qr-box { text-align: center; background: #ffffff; padding: 10px; border-radius: 16px; margin: 0 auto 12px; display: inline-block; width: fit-content; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-    .qr-box img { width: clamp(140px, 45vw, 170px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
+    .qr-box img { width: clamp(130px, 40vw, 160px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
     
-    .action-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; width: 100%; }
-    .btn-action { flex: 1; background: transparent; border: 1.5px solid rgba(2, 132, 199, 0.3); color: var(--accent-blue); border-radius: 14px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: inherit; }
-    .btn-action:active { transform: scale(0.95); background: rgba(2, 132, 199, 0.1); }
-    .btn-action.primary { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: #fff; border: none; box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25); }
-    .btn-action.primary:active { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
+    /* Nút lưu mã QR thon gọn */
+    .btn-save-qr { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: #fff; border: none; border-radius: 20px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25); margin-bottom: 12px; }
+    .btn-save-qr:active { transform: scale(0.95); background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
 
-    .copy-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 12px; margin-bottom: 8px; transition: all 0.2s; }
+    /* Các dòng thông tin thu gọn */
+    .copy-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.03); border-radius: 10px; margin-bottom: 6px; transition: all 0.2s; }
     .copy-item:active { background: rgba(0, 0, 0, 0.05); }
     .copy-item:last-child { margin-bottom: 0; }
     
     .copy-info { display: flex; flex-direction: column; overflow: hidden; padding-right: 10px; width: 100%; }
-    .copy-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
+    .copy-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
     .copy-val { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .copy-val.highlight { color: var(--accent-blue); font-size: 15px; font-weight: 800; }
+    .copy-val.highlight { color: var(--accent-blue); font-size: 14px; font-weight: 800; }
     
-    .btn-copy { background: rgba(2, 132, 199, 0.1); color: var(--accent-blue); border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+    .btn-copy { background: rgba(2, 132, 199, 0.1); color: var(--accent-blue); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
     .btn-copy:active { transform: scale(0.92); }
 
-    .note-box { background: rgba(147, 51, 234, 0.05); border: 1px dashed rgba(147, 51, 234, 0.3); border-radius: 16px; padding: 16px; margin-top: 16px; text-align: left; }
-    .note-title { font-size: 14px; font-weight: 800; color: #9333ea; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-    .note-list { list-style: none; padding: 0; margin: 0; font-size: 12px; color: #475569; line-height: 1.6; }
-    .note-list li { margin-bottom: 8px; display: flex; align-items: flex-start; gap: 6px; }
+    /* Khối Lưu ý thu gọn */
+    .note-box { background: rgba(147, 51, 234, 0.05); border: 1px dashed rgba(147, 51, 234, 0.3); border-radius: 14px; padding: 12px; margin-top: 12px; text-align: left; }
+    .note-title { font-size: 13px; font-weight: 800; color: #9333ea; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .note-list { list-style: none; padding: 0; margin: 0; font-size: 11px; color: #475569; line-height: 1.5; }
+    .note-list li { margin-bottom: 6px; display: flex; align-items: flex-start; gap: 6px; }
     .note-list li:last-child { margin-bottom: 0; }
     .note-list li span { font-weight: 800; color: #9333ea; }
 
     .success-icon { width: 64px; height: 64px; background: rgba(16, 185, 129, 0.1); color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 2px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); }
     
-    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 13px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; }
     .row:last-child { margin-bottom: 0; }
     .row .label { color: var(--text-muted); font-weight: 600; }
     .row .value { font-weight: 800; color: var(--text-main); }
@@ -76,44 +75,12 @@
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
 
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
-    .modal-overlay.show { opacity: 1; visibility: visible; }
-    .modal-content { width: 100%; max-width: 420px; background: #ffffff; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom, 24px); }
-    .modal-overlay.show .modal-content { transform: translateY(0); }
-    
-    .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; margin-top: 24px; }
-    .bank-btn { background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 10px; border-radius: 16px; font-weight: 700; color: #0f172a; font-size: 13px; text-align: center; cursor: pointer; transition: all 0.2s; }
-    .bank-btn:active { background: rgba(2, 132, 199, 0.1); border-color: #0284c7; color: #0284c7; transform: scale(0.96); }
-    .btn-cancel { width: 100%; padding: 14px; background: transparent; color: #64748b; border: none; font-size: 15px; font-weight: 700; cursor: pointer; border-radius: 16px; }
-    .btn-cancel:active { background: #f1f5f9; }
-
-    .spinner { border: 3px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--accent-blue); animation: spin 1s linear infinite; margin-bottom: 16px; }
+    .spinner { border: 3px solid rgba(0, 0, 0, 0.1); width: 32px; height: 32px; border-radius: 50%; border-left-color: var(--accent-blue); animation: spin 1s linear infinite; margin-bottom: 16px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="toast" id="toast">Đã sao chép!</div>
-
-  <!-- BẢNG CHỌN APP NGÂN HÀNG TRƯỢT TỪ DƯỚI LÊN -->
-  <div id="bank-modal" class="modal-overlay">
-    <div class="modal-content">
-      <div style="width: 40px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 0 auto 16px;"></div>
-      <h3 style="margin: 0 0 8px; color: var(--text-main); font-size: 18px; text-align: center;">Mở app ngân hàng</h3>
-      <p style="margin: 0; color: var(--text-muted); font-size: 13px; text-align: center;">Hệ thống sẽ tự động điền thông tin chuyển khoản</p>
-      
-      <div class="bank-grid">
-        <div class="bank-btn" onclick="openBankApp('vcb')">Vietcombank</div>
-        <div class="bank-btn" onclick="openBankApp('mb')">MB Bank</div>
-        <div class="bank-btn" onclick="openBankApp('icb')">VietinBank</div>
-        <div class="bank-btn" onclick="openBankApp('bidv')">BIDV</div>
-        <div class="bank-btn" onclick="openBankApp('tcb')">Techcombank</div>
-        <div class="bank-btn" onclick="openBankApp('acb')">ACB</div>
-        <div class="bank-btn" onclick="openBankApp('tpb')">TPBank</div>
-        <div class="bank-btn" onclick="openBankApp('vpb')">VPBank</div>
-      </div>
-      <button class="btn-cancel" onclick="closeBankModal()">Đóng</button>
-    </div>
-  </div>
 
   <div class="app-container">
     <div id="screen-loading" class="screen active" style="justify-content: center; align-items: center; height: 100%;">
@@ -138,15 +105,11 @@
             <div class="qr-box">
               <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
             </div>
-            
-            <div class="action-group">
-              <button class="btn-action" onclick="downloadQR()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Lưu QR
-              </button>
-              <button class="btn-action primary" onclick="openBankModal()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
-                Mở App Ngân Hàng
+            <!-- Nút Lưu QR thiết kế dạng Pill ôm gọn -->
+            <div>
+              <button class="btn-save-qr" onclick="downloadQR()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Lưu mã QR
               </button>
             </div>
           </div>
@@ -191,12 +154,11 @@
         <div class="note-box">
           <div class="note-title">📋 Lưu ý</div>
           <ul class="note-list">
-            <li><span>1.</span> Vui lòng nhập chính xác nội dung và số tiền yêu cầu. Thông tin không chính xác sẽ không thể tự động lên điểm.</li>
+            <li><span>1.</span> Vui lòng nhập chính xác nội dung và số tiền yêu cầu. Thông tin sai sẽ không thể tự động lên điểm.</li>
             <li><span>2.</span> Nếu không thể quét QR Code, vui lòng sao chép thông tin thanh toán.</li>
             <li><span>3.</span> Vui lòng không làm mới trình duyệt khi đang chuyển khoản.</li>
           </ul>
         </div>
-        
       </div>
 
       <!-- GIAO DIỆN ĐÃ THANH TOÁN THÀNH CÔNG -->
@@ -312,40 +274,6 @@
           })
           .catch(e => console.log("Lỗi ngầm"));
       }, 2000); 
-    }
-
-    /* ĐÓNG MỞ BẢNG CHỌN NGÂN HÀNG */
-    function openBankModal() {
-      document.getElementById('bank-modal').classList.add('show');
-    }
-    
-    function closeBankModal() {
-      document.getElementById('bank-modal').classList.remove('show');
-    }
-    
-    window.onclick = function(event) {
-      var modal = document.getElementById('bank-modal');
-      if (event.target == modal) { closeBankModal(); }
-    }
-
-    /* KÍCH HOẠT DEEP LINK MỞ APP NGÂN HÀNG - FIX LỖI TRÌNH DUYỆT CHẶN */
-    function openBankApp(appId) {
-      if (!currentData) return;
-      const rawAmount = String(currentData.amount).replace(/[^0-9]/g, '');
-      const content = currentData.content;
-      
-      // Sử dụng mã BIN NAPAS chuẩn của Vietcombank (970436) thay vì vcb để đảm bảo mở được trên mọi thiết bị
-      const ba = `${ACCOUNT_NO}@970436`; 
-      const deeplinkUrl = `https://dl.vietqr.io/pay?app=${appId}&ba=${ba}&am=${rawAmount}&tn=${encodeURIComponent(content)}`;
-      
-      // Tạo thẻ <a> giả lập thao tác bấm để vượt tường lửa bảo mật của trình duyệt
-      const link = document.createElement('a');
-      link.href = deeplinkUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      closeBankModal();
     }
 
     /* TÍNH NĂNG LƯU MÃ QR BẰNG CANVAS */
