@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Cổng Thanh Toán</title>
+  <title>Thanh toán online</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -41,9 +41,10 @@
     .qr-box { text-align: center; background: #ffffff; padding: 10px; border-radius: 16px; margin: 0 auto 12px; display: inline-block; width: fit-content; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
     .qr-box img { width: clamp(150px, 45vw, 180px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
     
-    /* Nút lưu mã QR */
-    .btn-save-qr { background: transparent; border: 1.5px solid rgba(2, 132, 199, 0.4); color: var(--accent-blue); border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 16px; transition: all 0.2s; font-family: inherit; }
-    .btn-save-qr:active { transform: scale(0.95); background: rgba(2, 132, 199, 0.1); }
+    /* Cụm nút bấm Lưu QR & Chia sẻ */
+    .action-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
+    .btn-action { background: transparent; border: 1.5px solid rgba(2, 132, 199, 0.3); color: var(--accent-blue); border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: inherit; }
+    .btn-action:active { transform: scale(0.95); background: rgba(2, 132, 199, 0.1); }
 
     .copy-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 12px; margin-bottom: 8px; transition: all 0.2s; }
     .copy-item:active { background: rgba(0, 0, 0, 0.05); }
@@ -107,10 +108,14 @@
             <div class="qr-box">
               <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
             </div>
-            <div>
-              <button class="btn-save-qr" onclick="downloadQR()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Lưu mã QR
+            <div class="action-row">
+              <button class="btn-action" onclick="downloadQR()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Lưu ảnh
+              </button>
+              <button class="btn-action" onclick="sharePayment()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                Chia sẻ
               </button>
             </div>
           </div>
@@ -161,7 +166,6 @@
             <li><span>3.</span> Vui lòng không làm mới trình duyệt khi đang chuyển khoản.</li>
           </ul>
         </div>
-        
       </div>
 
       <!-- GIAO DIỆN ĐÃ THANH TOÁN THÀNH CÔNG -->
@@ -183,11 +187,8 @@
   </div>
 
   <script>
-    // ==========================================
     // URL API GOOGLE SCRIPT CỦA BẠN
-    // ==========================================
     const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
-    // ==========================================
 
     const BANK_ID = 'vietcombank';
     const ACCOUNT_NO = 'TGE60603130946VCB';       
@@ -213,7 +214,7 @@
         .then(res => res.json())
         .then(result => {
           if (result.success) {
-            document.title = "Đơn Hàng " + result.data.id;
+            document.title = "Thanh toán online";
             renderData(result.data);
             switchScreen('bill');
           } else {
@@ -248,7 +249,7 @@
       
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
-      // ĐIỀN THÔNG TIN ĐÃ THANH TOÁN (Đã ẩn thời gian tạo)
+      // ĐIỀN THÔNG TIN ĐÃ THANH TOÁN
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
@@ -279,31 +280,30 @@
       }, 2000); 
     }
 
-    // TÍNH NĂNG LƯU MÃ QR BẰNG CANVAS
-    function downloadQR() {
-      showToast("Đang tạo ảnh...");
+    // ----------------------------------------------------
+    // HÀM TẠO ẢNH HÓA ĐƠN QR VÀ TRẢ VỀ DẠNG BLOB (Dùng chung cho Tải và Chia sẻ)
+    // ----------------------------------------------------
+    function generateCanvasBlob(callback) {
       const qrUrl = document.getElementById('qr-img').src;
       const amount = document.getElementById('cp-amount').innerText;
       const content = document.getElementById('cp-content').innerText;
 
       const img = new Image();
-      img.crossOrigin = "Anonymous"; // Giúp tránh lỗi bảo mật Canvas CORS
+      img.crossOrigin = "Anonymous";
       img.onload = function() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // Kích thước ảnh xuất ra
         canvas.width = 440;
         canvas.height = 620;
         
-        // Vẽ nền trắng
+        // Vẽ nền
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Vẽ ảnh QR
+        // Vẽ QR
         ctx.drawImage(img, 70, 40, 300, 300);
         
-        // Cài đặt chữ
         ctx.textAlign = 'center';
         
         // Tiêu đề
@@ -326,23 +326,93 @@
         ctx.font = '18px Arial, sans-serif';
         ctx.fillText('Nội dung: ' + content, canvas.width / 2, 520);
         
-        // Ghi chú viền dưới
+        // Ghi chú
         ctx.fillStyle = '#94a3b8';
         ctx.font = 'italic 14px Arial, sans-serif';
         ctx.fillText('Sử dụng App Ngân hàng quét mã để thanh toán', canvas.width / 2, 580);
         
-        // Tải ảnh xuống
-        const link = document.createElement('a');
-        link.download = 'ThanhToan_QR_' + currentId + '.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        canvas.toBlob(function(blob) {
+          callback(blob);
+        }, 'image/png');
       };
       
       img.onerror = function() {
-        showToast("Lỗi tải ảnh QR, vui lòng thử lại!");
+        showToast("Lỗi tạo ảnh, vui lòng thử lại!");
+        callback(null);
       }
-      
       img.src = qrUrl;
+    }
+
+    // ----------------------------------------------------
+    // NÚT LƯU ẢNH
+    // ----------------------------------------------------
+    function downloadQR() {
+      showToast("Đang tạo ảnh...");
+      generateCanvasBlob(function(blob) {
+        if(!blob) return;
+        const link = document.createElement('a');
+        link.download = 'ThanhToan_' + currentId + '.png';
+        link.href = URL.createObjectURL(blob);
+        link.click();
+      });
+    }
+
+    // ----------------------------------------------------
+    // NÚT CHIA SẺ (SHARE VĂN BẢN VÀ ẢNH)
+    // ----------------------------------------------------
+    function sharePayment() {
+      showToast("Đang chuẩn bị chia sẻ...");
+      
+      const amount = document.getElementById('cp-amount').innerText;
+      const content = document.getElementById('cp-content').innerText;
+      const bank = document.getElementById('cp-bank').innerText;
+      const acc = document.getElementById('cp-acc').innerText;
+      const name = document.getElementById('cp-name').innerText;
+
+      // Nội dung văn bản sẽ gửi đi
+      const textToShare = `THÔNG TIN THANH TOÁN\n- Ngân hàng: ${bank}\n- Số tài khoản: ${acc}\n- Chủ tài khoản: ${name}\n- Số tiền: ${amount}\n- Nội dung chuyển khoản: ${content}`;
+
+      generateCanvasBlob(async function(blob) {
+        if(!blob) return;
+        
+        const file = new File([blob], 'ThanhToan_' + currentId + '.png', { type: 'image/png' });
+        
+        // Kiểm tra xem trình duyệt có hỗ trợ chia sẻ File không (iOS, Android bản mới)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: 'Thanh toán online',
+              text: textToShare,
+              files: [file]
+            });
+          } catch (error) {
+            console.log('Hủy chia sẻ');
+          }
+        } 
+        // Trình duyệt chỉ hỗ trợ share text
+        else if (navigator.share) {
+          try {
+            await navigator.share({
+              title: 'Thanh toán online',
+              text: textToShare
+            });
+          } catch (error) {
+            console.log('Hủy chia sẻ text');
+          }
+        } 
+        // Trình duyệt PC (Không hỗ trợ Share), tự động copy text và tải ảnh luôn
+        else {
+          const textArea = document.createElement("textarea");
+          textArea.value = textToShare;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand("Copy");
+          textArea.remove();
+          
+          downloadQR();
+          showToast("Đã Copy thông tin và tải ảnh hóa đơn!");
+        }
+      });
     }
 
     function copyText(id) { 
@@ -360,7 +430,7 @@
       var t = document.getElementById('toast');
       t.innerText = msg;
       t.classList.add('show');
-      setTimeout(function() { t.classList.remove('show'); }, 2000);
+      setTimeout(function() { t.classList.remove('show'); }, 2500);
     }
   </script>
 </body>
