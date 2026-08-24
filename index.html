@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Đổi sang tông màu sáng */
       --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
       --glass-bg: rgba(255, 255, 255, 0.7);
       --glass-border: rgba(255, 255, 255, 0.9);
@@ -21,49 +20,17 @@
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
+    html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
-    body { 
-      font-family: 'Plus Jakarta Sans', sans-serif; 
-      background: var(--bg-gradient); 
-      display: flex; 
-      justify-content: center; 
-      color: var(--text-main); 
-      position: relative; 
-    }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg-gradient); display: flex; justify-content: center; color: var(--text-main); position: relative; }
     
-    /* Vòng tròn tạo hiệu ứng màu nổi phía sau (Tông sáng) */
     body::before, body::after { content: ''; position: absolute; border-radius: 50%; filter: blur(70px); z-index: 0; opacity: 0.5; pointer-events: none; }
     body::before { width: 300px; height: 300px; background: rgba(56, 189, 248, 0.3); top: -80px; left: -80px; }
     body::after { width: 250px; height: 250px; background: rgba(52, 211, 153, 0.25); bottom: -40px; right: -40px; }
 
-    .app-container { 
-      width: 100%; 
-      max-width: 400px; 
-      height: 100vh;
-      height: 100dvh; 
-      position: relative; 
-      z-index: 1; 
-      display: flex; 
-      flex-direction: column;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch; 
-    }
+    .app-container { width: 100%; max-width: 400px; height: 100vh; height: 100dvh; position: relative; z-index: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
     
-    .screen { 
-      display: none; 
-      flex-direction: column; 
-      flex-grow: 1; 
-      padding: clamp(16px, 4vw, 24px); 
-      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-    }
+    .screen { display: none; flex-direction: column; flex-grow: 1; padding: clamp(16px, 4vw, 24px); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .screen.active { display: flex; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -71,9 +38,13 @@
     
     .card { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: var(--glass-shadow); }
     
-    .qr-box { text-align: center; background: #ffffff; padding: 10px; border-radius: 16px; margin: 0 auto 16px; display: inline-block; width: fit-content; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+    .qr-box { text-align: center; background: #ffffff; padding: 10px; border-radius: 16px; margin: 0 auto 12px; display: inline-block; width: fit-content; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
     .qr-box img { width: clamp(150px, 45vw, 180px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
     
+    /* Nút lưu mã QR */
+    .btn-save-qr { background: transparent; border: 1.5px solid rgba(2, 132, 199, 0.4); color: var(--accent-blue); border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 16px; transition: all 0.2s; font-family: inherit; }
+    .btn-save-qr:active { transform: scale(0.95); background: rgba(2, 132, 199, 0.1); }
+
     .copy-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 12px; margin-bottom: 8px; transition: all 0.2s; }
     .copy-item:active { background: rgba(0, 0, 0, 0.05); }
     .copy-item:last-child { margin-bottom: 0; }
@@ -86,7 +57,6 @@
     .btn-copy { background: rgba(2, 132, 199, 0.1); color: var(--accent-blue); border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
     .btn-copy:active { transform: scale(0.92); }
 
-    /* Khối Lưu ý - Điều chỉnh màu chữ trên nền sáng */
     .note-box { background: rgba(147, 51, 234, 0.05); border: 1px dashed rgba(147, 51, 234, 0.3); border-radius: 16px; padding: 16px; margin-top: 16px; text-align: left; }
     .note-title { font-size: 14px; font-weight: 800; color: #9333ea; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
     .note-list { list-style: none; padding: 0; margin: 0; font-size: 12px; color: #475569; line-height: 1.6; }
@@ -101,7 +71,6 @@
     .row .label { color: var(--text-muted); font-weight: 600; }
     .row .value { font-weight: 800; color: var(--text-main); }
     
-    /* Thông báo nổi (Nền tối để nổi bật trên nền sáng) */
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 12px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
 
@@ -136,7 +105,13 @@
         <div class="card" style="margin-bottom: 0;">
           <div style="text-align: center;">
             <div class="qr-box">
-              <img id="qr-img" src="" alt="Mã QR">
+              <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
+            </div>
+            <div>
+              <button class="btn-save-qr" onclick="downloadQR()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Lưu mã QR
+              </button>
             </div>
           </div>
           
@@ -168,7 +143,7 @@
             </div>
             <div class="btn-copy" onclick="copyText('cp-amount')">Copy</div>
           </div>
-          <div class="copy-item">
+          <div class="copy-item" style="margin-bottom: 0;">
             <div class="copy-info">
               <span class="copy-lbl">Nội dung (Bắt buộc)</span>
               <span class="copy-val" id="cp-content">---</span>
@@ -181,9 +156,9 @@
         <div class="note-box">
           <div class="note-title">📋 Lưu ý</div>
           <ul class="note-list">
-            <li><span>1.</span> Vui lòng nhập chính xác nội dung và số tiền yêu cầu từ hệ thống. Thông tin không chính xác sẽ không thể tự động lên điểm.</li>
-            <li><span>2.</span> Nếu không thể sử dụng mã QR Code, vui lòng sao chép tài khoản thanh toán.</li>
-            <li><span>3.</span> Khi chuyển khoản không làm mới trình duyệt.</li>
+            <li><span>1.</span> Vui lòng nhập chính xác nội dung và số tiền yêu cầu. Thông tin không chính xác sẽ không thể tự động lên điểm.</li>
+            <li><span>2.</span> Nếu không thể quét QR Code, vui lòng sao chép thông tin thanh toán.</li>
+            <li><span>3.</span> Vui lòng không làm mới trình duyệt khi đang chuyển khoản.</li>
           </ul>
         </div>
         
@@ -273,7 +248,7 @@
       
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
-      // ĐIỀN THÔNG TIN ĐÃ THANH TOÁN (Đã ẩn đi thời gian tạo)
+      // ĐIỀN THÔNG TIN ĐÃ THANH TOÁN (Đã ẩn thời gian tạo)
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
@@ -285,7 +260,7 @@
       } else {
         document.getElementById('bill-unpaid').style.display = 'flex';
         document.getElementById('bill-paid').style.display = 'none';
-        startPolling(); // Tự động quét 2s/lần
+        startPolling(); 
       }
     }
 
@@ -302,6 +277,72 @@
           })
           .catch(e => console.log("Lỗi ngầm"));
       }, 2000); 
+    }
+
+    // TÍNH NĂNG LƯU MÃ QR BẰNG CANVAS
+    function downloadQR() {
+      showToast("Đang tạo ảnh...");
+      const qrUrl = document.getElementById('qr-img').src;
+      const amount = document.getElementById('cp-amount').innerText;
+      const content = document.getElementById('cp-content').innerText;
+
+      const img = new Image();
+      img.crossOrigin = "Anonymous"; // Giúp tránh lỗi bảo mật Canvas CORS
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Kích thước ảnh xuất ra
+        canvas.width = 440;
+        canvas.height = 620;
+        
+        // Vẽ nền trắng
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Vẽ ảnh QR
+        ctx.drawImage(img, 70, 40, 300, 300);
+        
+        // Cài đặt chữ
+        ctx.textAlign = 'center';
+        
+        // Tiêu đề
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 24px Arial, sans-serif';
+        ctx.fillText('THÔNG TIN THANH TOÁN', canvas.width / 2, 380);
+        
+        // Mã GD
+        ctx.fillStyle = '#64748b';
+        ctx.font = '18px Arial, sans-serif';
+        ctx.fillText('Mã GD: ' + currentId, canvas.width / 2, 420);
+        
+        // Số tiền
+        ctx.fillStyle = '#0284c7';
+        ctx.font = 'bold 28px Arial, sans-serif';
+        ctx.fillText(amount, canvas.width / 2, 470);
+        
+        // Nội dung
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '18px Arial, sans-serif';
+        ctx.fillText('Nội dung: ' + content, canvas.width / 2, 520);
+        
+        // Ghi chú viền dưới
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'italic 14px Arial, sans-serif';
+        ctx.fillText('Sử dụng App Ngân hàng quét mã để thanh toán', canvas.width / 2, 580);
+        
+        // Tải ảnh xuống
+        const link = document.createElement('a');
+        link.download = 'ThanhToan_QR_' + currentId + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+      
+      img.onerror = function() {
+        showToast("Lỗi tải ảnh QR, vui lòng thử lại!");
+      }
+      
+      img.src = qrUrl;
     }
 
     function copyText(id) { 
