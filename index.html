@@ -41,7 +41,6 @@
     .qr-box { text-align: center; background: #ffffff; padding: 10px; border-radius: 16px; margin: 0 auto 12px; display: inline-block; width: fit-content; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
     .qr-box img { width: clamp(140px, 45vw, 170px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
     
-    /* Cụm 2 nút chức năng QR */
     .action-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; width: 100%; }
     .btn-action { flex: 1; background: transparent; border: 1.5px solid rgba(2, 132, 199, 0.3); color: var(--accent-blue); border-radius: 14px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: inherit; }
     .btn-action:active { transform: scale(0.95); background: rgba(2, 132, 199, 0.1); }
@@ -74,11 +73,9 @@
     .row .label { color: var(--text-muted); font-weight: 600; }
     .row .value { font-weight: 800; color: var(--text-main); }
     
-    /* Toast */
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
 
-    /* Modal Chọn Ngân Hàng (Bottom Sheet) */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
     .modal-overlay.show { opacity: 1; visibility: visible; }
     .modal-content { width: 100%; max-width: 420px; background: #ffffff; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom, 24px); }
@@ -119,20 +116,17 @@
   </div>
 
   <div class="app-container">
-    <!-- LOADING -->
     <div id="screen-loading" class="screen active" style="justify-content: center; align-items: center; height: 100%;">
       <div class="spinner"></div>
       <p style="color: var(--text-muted); font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Đang tải thông tin...</p>
     </div>
 
-    <!-- ERROR -->
     <div id="screen-error" class="screen" style="justify-content: center; align-items: center; height: 100%;">
       <div style="font-size: 42px; margin-bottom: 16px; filter: drop-shadow(0 0 10px rgba(220,38,38,0.2));">⚠️</div>
       <h2 style="margin:0 0 8px; font-size: 20px;">Thông báo</h2>
       <p id="error-msg" style="color: var(--accent-red); font-size: 13px; text-align: center; line-height: 1.6;">Liên kết không hợp lệ.</p>
     </div>
 
-    <!-- BILL THANH TOÁN CHÍNH -->
     <div id="screen-bill" class="screen">
       
       <!-- GIAO DIỆN CHƯA THANH TOÁN -->
@@ -145,7 +139,6 @@
               <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
             </div>
             
-            <!-- CỤM 2 NÚT NÂNG CAO -->
             <div class="action-group">
               <button class="btn-action" onclick="downloadQR()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -195,7 +188,6 @@
           </div>
         </div>
         
-        <!-- Khối Lưu ý -->
         <div class="note-box">
           <div class="note-title">📋 Lưu ý</div>
           <ul class="note-list">
@@ -235,7 +227,7 @@
     const ACCOUNT_NAME = 'DINH VIET TRUONG';      
 
     let currentId = "";
-    let currentData = null; // Lưu lại data để truyền cho deep link
+    let currentData = null; 
     let pollingInterval;
 
     window.onload = function() {
@@ -277,7 +269,7 @@
     }
 
     function renderData(data) {
-      currentData = data; // Cập nhật biến toàn cục
+      currentData = data; 
       var statusStr = data.status ? String(data.status).trim().toLowerCase() : '';
       var isPaid = (statusStr === 'đã thanh toán' || statusStr === 'thành công');
 
@@ -331,22 +323,29 @@
       document.getElementById('bank-modal').classList.remove('show');
     }
     
-    // Đóng khi ấn ra ngoài bảng
     window.onclick = function(event) {
       var modal = document.getElementById('bank-modal');
       if (event.target == modal) { closeBankModal(); }
     }
 
-    /* KÍCH HOẠT DEEP LINK MỞ APP NGÂN HÀNG CỦA VIETQR */
+    /* KÍCH HOẠT DEEP LINK MỞ APP NGÂN HÀNG - FIX LỖI TRÌNH DUYỆT CHẶN */
     function openBankApp(appId) {
       if (!currentData) return;
       const rawAmount = String(currentData.amount).replace(/[^0-9]/g, '');
       const content = currentData.content;
-      // Định dạng tài khoản gửi cho API VietQR (STK@Mã ngân hàng) -> Vietcombank là vcb
-      const ba = `${ACCOUNT_NO}@vcb`; 
       
+      // Sử dụng mã BIN NAPAS chuẩn của Vietcombank (970436) thay vì vcb để đảm bảo mở được trên mọi thiết bị
+      const ba = `${ACCOUNT_NO}@970436`; 
       const deeplinkUrl = `https://dl.vietqr.io/pay?app=${appId}&ba=${ba}&am=${rawAmount}&tn=${encodeURIComponent(content)}`;
-      window.location.href = deeplinkUrl;
+      
+      // Tạo thẻ <a> giả lập thao tác bấm để vượt tường lửa bảo mật của trình duyệt
+      const link = document.createElement('a');
+      link.href = deeplinkUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      closeBankModal();
     }
 
     /* TÍNH NĂNG LƯU MÃ QR BẰNG CANVAS */
