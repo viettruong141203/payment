@@ -39,12 +39,14 @@
     .card { background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: var(--glass-shadow); }
     
     .qr-box { text-align: center; background: #ffffff; padding: 10px; border-radius: 16px; margin: 0 auto 12px; display: inline-block; width: fit-content; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-    .qr-box img { width: clamp(150px, 45vw, 180px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
+    .qr-box img { width: clamp(140px, 45vw, 170px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
     
-    /* Cụm nút bấm Lưu QR & Chia sẻ */
-    .action-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
-    .btn-action { background: transparent; border: 1.5px solid rgba(2, 132, 199, 0.3); color: var(--accent-blue); border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: inherit; }
+    /* Cụm 2 nút chức năng QR */
+    .action-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; width: 100%; }
+    .btn-action { flex: 1; background: transparent; border: 1.5px solid rgba(2, 132, 199, 0.3); color: var(--accent-blue); border-radius: 14px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: inherit; }
     .btn-action:active { transform: scale(0.95); background: rgba(2, 132, 199, 0.1); }
+    .btn-action.primary { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: #fff; border: none; box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25); }
+    .btn-action.primary:active { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
 
     .copy-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.04); border-radius: 12px; margin-bottom: 8px; transition: all 0.2s; }
     .copy-item:active { background: rgba(0, 0, 0, 0.05); }
@@ -72,8 +74,21 @@
     .row .label { color: var(--text-muted); font-weight: 600; }
     .row .value { font-weight: 800; color: var(--text-main); }
     
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 12px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    /* Toast */
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; font-weight: 600; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     .toast.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+    /* Modal Chọn Ngân Hàng (Bottom Sheet) */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-end; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .modal-overlay.show { opacity: 1; visibility: visible; }
+    .modal-content { width: 100%; max-width: 420px; background: #ffffff; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom, 24px); }
+    .modal-overlay.show .modal-content { transform: translateY(0); }
+    
+    .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; margin-top: 24px; }
+    .bank-btn { background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 10px; border-radius: 16px; font-weight: 700; color: #0f172a; font-size: 13px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .bank-btn:active { background: rgba(2, 132, 199, 0.1); border-color: #0284c7; color: #0284c7; transform: scale(0.96); }
+    .btn-cancel { width: 100%; padding: 14px; background: transparent; color: #64748b; border: none; font-size: 15px; font-weight: 700; cursor: pointer; border-radius: 16px; }
+    .btn-cancel:active { background: #f1f5f9; }
 
     .spinner { border: 3px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--accent-blue); animation: spin 1s linear infinite; margin-bottom: 16px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -81,6 +96,27 @@
 </head>
 <body>
   <div class="toast" id="toast">Đã sao chép!</div>
+
+  <!-- BẢNG CHỌN APP NGÂN HÀNG TRƯỢT TỪ DƯỚI LÊN -->
+  <div id="bank-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div style="width: 40px; height: 5px; background: #e2e8f0; border-radius: 10px; margin: 0 auto 16px;"></div>
+      <h3 style="margin: 0 0 8px; color: var(--text-main); font-size: 18px; text-align: center;">Mở app ngân hàng</h3>
+      <p style="margin: 0; color: var(--text-muted); font-size: 13px; text-align: center;">Hệ thống sẽ tự động điền thông tin chuyển khoản</p>
+      
+      <div class="bank-grid">
+        <div class="bank-btn" onclick="openBankApp('vcb')">Vietcombank</div>
+        <div class="bank-btn" onclick="openBankApp('mb')">MB Bank</div>
+        <div class="bank-btn" onclick="openBankApp('icb')">VietinBank</div>
+        <div class="bank-btn" onclick="openBankApp('bidv')">BIDV</div>
+        <div class="bank-btn" onclick="openBankApp('tcb')">Techcombank</div>
+        <div class="bank-btn" onclick="openBankApp('acb')">ACB</div>
+        <div class="bank-btn" onclick="openBankApp('tpb')">TPBank</div>
+        <div class="bank-btn" onclick="openBankApp('vpb')">VPBank</div>
+      </div>
+      <button class="btn-cancel" onclick="closeBankModal()">Đóng</button>
+    </div>
+  </div>
 
   <div class="app-container">
     <!-- LOADING -->
@@ -108,14 +144,16 @@
             <div class="qr-box">
               <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
             </div>
-            <div class="action-row">
+            
+            <!-- CỤM 2 NÚT NÂNG CAO -->
+            <div class="action-group">
               <button class="btn-action" onclick="downloadQR()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Lưu ảnh
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Lưu QR
               </button>
-              <button class="btn-action" onclick="sharePayment()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-                Chia sẻ
+              <button class="btn-action primary" onclick="openBankModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                Mở App Ngân Hàng
               </button>
             </div>
           </div>
@@ -166,6 +204,7 @@
             <li><span>3.</span> Vui lòng không làm mới trình duyệt khi đang chuyển khoản.</li>
           </ul>
         </div>
+        
       </div>
 
       <!-- GIAO DIỆN ĐÃ THANH TOÁN THÀNH CÔNG -->
@@ -187,17 +226,20 @@
   </div>
 
   <script>
-    // URL API GOOGLE SCRIPT CỦA BẠN
+    // URL API GOOGLE SCRIPT
     const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
-
+    
+    // THÔNG TIN NGÂN HÀNG CỐ ĐỊNH
     const BANK_ID = 'vietcombank';
     const ACCOUNT_NO = 'TGE60603130946VCB';       
     const ACCOUNT_NAME = 'DINH VIET TRUONG';      
 
     let currentId = "";
+    let currentData = null; // Lưu lại data để truyền cho deep link
     let pollingInterval;
 
     window.onload = function() {
+      document.title = "Thanh toán online";
       const urlParams = new URLSearchParams(window.location.search);
       currentId = urlParams.get('id');
       
@@ -214,7 +256,6 @@
         .then(res => res.json())
         .then(result => {
           if (result.success) {
-            document.title = "Thanh toán online";
             renderData(result.data);
             switchScreen('bill');
           } else {
@@ -236,6 +277,7 @@
     }
 
     function renderData(data) {
+      currentData = data; // Cập nhật biến toàn cục
       var statusStr = data.status ? String(data.status).trim().toLowerCase() : '';
       var isPaid = (statusStr === 'đã thanh toán' || statusStr === 'thành công');
 
@@ -280,16 +322,42 @@
       }, 2000); 
     }
 
-    // ----------------------------------------------------
-    // HÀM TẠO ẢNH HÓA ĐƠN QR VÀ TRẢ VỀ DẠNG BLOB (Dùng chung cho Tải và Chia sẻ)
-    // ----------------------------------------------------
-    function generateCanvasBlob(callback) {
+    /* ĐÓNG MỞ BẢNG CHỌN NGÂN HÀNG */
+    function openBankModal() {
+      document.getElementById('bank-modal').classList.add('show');
+    }
+    
+    function closeBankModal() {
+      document.getElementById('bank-modal').classList.remove('show');
+    }
+    
+    // Đóng khi ấn ra ngoài bảng
+    window.onclick = function(event) {
+      var modal = document.getElementById('bank-modal');
+      if (event.target == modal) { closeBankModal(); }
+    }
+
+    /* KÍCH HOẠT DEEP LINK MỞ APP NGÂN HÀNG CỦA VIETQR */
+    function openBankApp(appId) {
+      if (!currentData) return;
+      const rawAmount = String(currentData.amount).replace(/[^0-9]/g, '');
+      const content = currentData.content;
+      // Định dạng tài khoản gửi cho API VietQR (STK@Mã ngân hàng) -> Vietcombank là vcb
+      const ba = `${ACCOUNT_NO}@vcb`; 
+      
+      const deeplinkUrl = `https://dl.vietqr.io/pay?app=${appId}&ba=${ba}&am=${rawAmount}&tn=${encodeURIComponent(content)}`;
+      window.location.href = deeplinkUrl;
+    }
+
+    /* TÍNH NĂNG LƯU MÃ QR BẰNG CANVAS */
+    function downloadQR() {
+      showToast("Đang tạo ảnh...");
       const qrUrl = document.getElementById('qr-img').src;
       const amount = document.getElementById('cp-amount').innerText;
       const content = document.getElementById('cp-content').innerText;
 
       const img = new Image();
-      img.crossOrigin = "Anonymous";
+      img.crossOrigin = "Anonymous"; 
       img.onload = function() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -297,122 +365,39 @@
         canvas.width = 440;
         canvas.height = 620;
         
-        // Vẽ nền
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Vẽ QR
         ctx.drawImage(img, 70, 40, 300, 300);
-        
         ctx.textAlign = 'center';
         
-        // Tiêu đề
         ctx.fillStyle = '#0f172a';
         ctx.font = 'bold 24px Arial, sans-serif';
         ctx.fillText('THÔNG TIN THANH TOÁN', canvas.width / 2, 380);
         
-        // Mã GD
         ctx.fillStyle = '#64748b';
         ctx.font = '18px Arial, sans-serif';
         ctx.fillText('Mã GD: ' + currentId, canvas.width / 2, 420);
         
-        // Số tiền
         ctx.fillStyle = '#0284c7';
         ctx.font = 'bold 28px Arial, sans-serif';
         ctx.fillText(amount, canvas.width / 2, 470);
         
-        // Nội dung
         ctx.fillStyle = '#0f172a';
         ctx.font = '18px Arial, sans-serif';
         ctx.fillText('Nội dung: ' + content, canvas.width / 2, 520);
         
-        // Ghi chú
         ctx.fillStyle = '#94a3b8';
         ctx.font = 'italic 14px Arial, sans-serif';
         ctx.fillText('Sử dụng App Ngân hàng quét mã để thanh toán', canvas.width / 2, 580);
         
-        canvas.toBlob(function(blob) {
-          callback(blob);
-        }, 'image/png');
+        const link = document.createElement('a');
+        link.download = 'QR_ThanhToan_' + currentId + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
       };
       
-      img.onerror = function() {
-        showToast("Lỗi tạo ảnh, vui lòng thử lại!");
-        callback(null);
-      }
+      img.onerror = function() { showToast("Lỗi tải ảnh QR, vui lòng thử lại!"); }
       img.src = qrUrl;
-    }
-
-    // ----------------------------------------------------
-    // NÚT LƯU ẢNH
-    // ----------------------------------------------------
-    function downloadQR() {
-      showToast("Đang tạo ảnh...");
-      generateCanvasBlob(function(blob) {
-        if(!blob) return;
-        const link = document.createElement('a');
-        link.download = 'ThanhToan_' + currentId + '.png';
-        link.href = URL.createObjectURL(blob);
-        link.click();
-      });
-    }
-
-    // ----------------------------------------------------
-    // NÚT CHIA SẺ (SHARE VĂN BẢN VÀ ẢNH)
-    // ----------------------------------------------------
-    function sharePayment() {
-      showToast("Đang chuẩn bị chia sẻ...");
-      
-      const amount = document.getElementById('cp-amount').innerText;
-      const content = document.getElementById('cp-content').innerText;
-      const bank = document.getElementById('cp-bank').innerText;
-      const acc = document.getElementById('cp-acc').innerText;
-      const name = document.getElementById('cp-name').innerText;
-
-      // Nội dung văn bản sẽ gửi đi
-      const textToShare = `THÔNG TIN THANH TOÁN\n- Ngân hàng: ${bank}\n- Số tài khoản: ${acc}\n- Chủ tài khoản: ${name}\n- Số tiền: ${amount}\n- Nội dung chuyển khoản: ${content}`;
-
-      generateCanvasBlob(async function(blob) {
-        if(!blob) return;
-        
-        const file = new File([blob], 'ThanhToan_' + currentId + '.png', { type: 'image/png' });
-        
-        // Kiểm tra xem trình duyệt có hỗ trợ chia sẻ File không (iOS, Android bản mới)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              title: 'Thanh toán online',
-              text: textToShare,
-              files: [file]
-            });
-          } catch (error) {
-            console.log('Hủy chia sẻ');
-          }
-        } 
-        // Trình duyệt chỉ hỗ trợ share text
-        else if (navigator.share) {
-          try {
-            await navigator.share({
-              title: 'Thanh toán online',
-              text: textToShare
-            });
-          } catch (error) {
-            console.log('Hủy chia sẻ text');
-          }
-        } 
-        // Trình duyệt PC (Không hỗ trợ Share), tự động copy text và tải ảnh luôn
-        else {
-          const textArea = document.createElement("textarea");
-          textArea.value = textToShare;
-          document.body.appendChild(textArea);
-          textArea.select();
-          document.execCommand("Copy");
-          textArea.remove();
-          
-          downloadQR();
-          showToast("Đã Copy thông tin và tải ảnh hóa đơn!");
-        }
-      });
     }
 
     function copyText(id) { 
@@ -430,7 +415,7 @@
       var t = document.getElementById('toast');
       t.innerText = msg;
       t.classList.add('show');
-      setTimeout(function() { t.classList.remove('show'); }, 2500);
+      setTimeout(function() { t.classList.remove('show'); }, 2000);
     }
   </script>
 </body>
