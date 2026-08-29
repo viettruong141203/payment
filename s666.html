@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xóc Đĩa Online Tự Động</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #1a252f;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            background: #2c3e50;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .balance { color: #f1c40f; }
+        
+        .timer-box {
+            font-size: 30px;
+            margin-bottom: 10px;
+            color: #e74c3c;
+        }
+
+        /* Khu vực Đĩa và Bát */
+        .game-area {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 30px;
+        }
+        .plate {
+            width: 250px;
+            height: 250px;
+            background-color: #ecf0f1;
+            border-radius: 50%;
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            border: 8px solid #bdc3c7;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-content: center;
+            gap: 15px;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        /* Cái bát úp lên trên */
+        .bowl {
+            width: 270px;
+            height: 270px;
+            background: radial-gradient(circle at 30% 30%, #95a5a6, #2c3e50);
+            border-radius: 50%;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.6);
+            transition: transform 0.5s ease-in-out, opacity 0.5s;
+        }
+        /* Hiệu ứng mở bát */
+        .bowl.open {
+            transform: translateY(-200px) scale(0.8);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .coin {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid #333;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+        }
+        .red { background-color: #c0392b; }
+        .white { background-color: #ecf0f1; }
+        
+        .shake { animation: shake-anim 0.4s infinite; }
+        @keyframes shake-anim {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            25% { transform: translate(-3px, -2px) rotate(-1deg); }
+            50% { transform: translate(0px, 3px) rotate(1deg); }
+            75% { transform: translate(3px, -1px) rotate(0deg); }
+            100% { transform: translate(-1px, 2px) rotate(-1deg); }
+        }
+
+        /* Khu vực Cược */
+        .bet-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .bet-box {
+            background: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            width: 150px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+        .bet-box:hover {
+            background: #3d566e;
+            border-color: #f1c40f;
+        }
+        .bet-box.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .bet-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .bet-amount {
+            font-size: 20px;
+            color: #2ecc71;
+        }
+        .result-text {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            min-height: 35px;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>Tài khoản: <span class="balance" id="balance">10000</span>$</div>
+        <div>Trạng thái: <span id="status">ĐANG NHẬN CƯỢC</span></div>
+    </div>
+
+    <div class="timer-box" id="timer">15</div>
+
+    <div class="game-area" id="gameArea">
+        <div class="bowl" id="bowl"></div>
+        <div class="plate">
+            <div class="coin white" id="coin1"></div>
+            <div class="coin red" id="coin2"></div>
+            <div class="coin white" id="coin3"></div>
+            <div class="coin red" id="coin4"></div>
+        </div>
+    </div>
+
+    <div class="bet-container">
+        <div class="bet-box" id="boxChan" onclick="placeBet('chan')">
+            <div class="bet-title">CHẴN</div>
+            <div class="bet-amount" id="betChan">0$</div>
+        </div>
+        <div class="bet-box" id="boxLe" onclick="placeBet('le')">
+            <div class="bet-title">LẺ</div>
+            <div class="bet-amount" id="betLe">0$</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="clearBet()" id="btnClear">Hủy Cược (Lấy lại tiền)</button>
+        <p style="font-size: 14px; color: #bdc3c7;">(Mỗi lần bấm vào Chẵn/Lẻ sẽ cược 500$)</p>
+    </div>
+
+    <div class="result-text" id="resultText"></div>
+
+    <script>
+        // Cấu hình ban đầu
+        let balance = 10000;
+        let bets = { chan: 0, le: 0 };
+        const BET_UNIT = 500; // Mỗi lần click cược 500$
+        
+        let timeLeft = 15;
+        let isBettingPhase = true; // true: 15s cược, false: 5s mở bát
+
+        const timerEl = document.getElementById('timer');
+        const statusEl = document.getElementById('status');
+        const bowlEl = document.getElementById('bowl');
+        const balanceEl = document.getElementById('balance');
+        const gameAreaEl = document.getElementById('gameArea');
+        const boxChan = document.getElementById('boxChan');
+        const boxLe = document.getElementById('boxLe');
+        const resultText = document.getElementById('resultText');
+        const btnClear = document.getElementById('btnClear');
+
+        const coins = [
+            document.getElementById('coin1'),
+            document.getElementById('coin2'),
+            document.getElementById('coin3'),
+            document.getElementById('coin4')
+        ];
+
+        // Vòng lặp chính của trò chơi (chạy mỗi 1 giây)
+        setInterval(() => {
+            timeLeft--;
+            timerEl.innerText = timeLeft;
+
+            if (timeLeft <= 0) {
+                if (isBettingPhase) {
+                    // Hết 15s cược -> Chuyển sang xử lý mở bát
+                    switchToResultPhase();
+                } else {
+                    // Hết 5s xem -> Chuyển về đặt cược
+                    switchToBettingPhase();
+                }
+            }
+        }, 1000);
+
+        function switchToResultPhase() {
+            isBettingPhase = false;
+            statusEl.innerText = "HẾT THỜI GIAN CƯỢC";
+            statusEl.style.color = "#e74c3c";
+            timerEl.style.color = "#2ecc71";
+            
+            // Khóa nút cược
+            boxChan.classList.add('disabled');
+            boxLe.classList.add('disabled');
+            btnClear.disabled = true;
+
+            // Lắc đĩa 1 giây trước khi mở
+            gameAreaEl.classList.add('shake');
+
+            setTimeout(() => {
+                gameAreaEl.classList.remove('shake');
+                openBowlAndCalculate();
+            }, 1000); // Lắc 1 giây rồi mở bát
+        }
+
+        function openBowlAndCalculate() {
+            // Mở bát (CSS Transition)
+            bowlEl.classList.add('open');
+            statusEl.innerText = "MỞ BÁT!";
+
+            // Tạo kết quả ngẫu nhiên
+            let redCount = 0;
+            coins.forEach(coin => {
+                if (Math.random() < 0.5) {
+                    coin.className = 'coin red';
+                    redCount++;
+                } else {
+                    coin.className = 'coin white';
+                }
+            });
+
+            // Xác định thắng thua
+            const isChan = (redCount % 2 === 0);
+            let winAmount = 0;
+
+            if (isChan) {
+                resultText.innerText = `KẾT QUẢ: CHẴN (${redCount} Đỏ)`;
+                resultText.style.color = '#2ecc71';
+                
+                // Trả thưởng (Nếu cược Chẵn thì nhận lại vốn + lãi x1)
+                if (bets.chan > 0) winAmount = bets.chan * 2;
+            } else {
+                resultText.innerText = `KẾT QUẢ: LẺ (${redCount} Đỏ)`;
+                resultText.style.color = '#e74c3c';
+                
+                if (bets.le > 0) winAmount = bets.le * 2;
+            }
+
+            // Cập nhật tiền
+            if (winAmount > 0) {
+                balance += winAmount;
+                statusEl.innerText = `BẠN THẮNG ${winAmount/2}$!`;
+            } else if (bets.chan > 0 || bets.le > 0) {
+                statusEl.innerText = "BẠN THUA!";
+            }
+            
+            updateUI();
+            
+            // Đặt thời gian xem kết quả là 5s
+            timeLeft = 5; 
+        }
+
+        function switchToBettingPhase() {
+            isBettingPhase = true;
+            timeLeft = 15;
+            
+            // Úp bát lại
+            bowlEl.classList.remove('open');
+            
+            // Reset cược
+            bets.chan = 0;
+            bets.le = 0;
+            resultText.innerText = "";
+            statusEl.innerText = "ĐANG NHẬN CƯỢC";
+            statusEl.style.color = "white";
+            timerEl.style.color = "#e74c3c";
+
+            // Mở lại nút cược
+            boxChan.classList.remove('disabled');
+            boxLe.classList.remove('disabled');
+            btnClear.disabled = false;
+            
+            updateUI();
+        }
+
+        // Hàm đặt cược khi click
+        function placeBet(type) {
+            if (!isBettingPhase) return; // Không cho cược khi đang mở bát
+            
+            if (balance >= BET_UNIT) {
+                balance -= BET_UNIT;
+                bets[type] += BET_UNIT;
+                updateUI();
+            } else {
+                alert("Bạn không đủ tiền để cược!");
+            }
+        }
+
+        // Hủy cược (lấy lại tiền về túi)
+        function clearBet() {
+            if (!isBettingPhase) return;
+            balance += (bets.chan + bets.le);
+            bets.chan = 0;
+            bets.le = 0;
+            updateUI();
+        }
+
+        // Cập nhật các con số trên màn hình
+        function updateUI() {
+            balanceEl.innerText = balance;
+            document.getElementById('betChan').innerText = bets.chan + "$";
+            document.getElementById('betLe').innerText = bets.le + "$";
+        }
+    </script>
+</body>
+</html>
