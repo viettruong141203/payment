@@ -242,7 +242,7 @@
     };
 
     function fetchData() {
-      fetch(GOOGLE_API_URL + "?net=" + currentId)
+      fetch(GOOGLE_API_URL + "?id=" + currentId)
         .then(res => res.json())
         .then(result => {
           if (result.success) {
