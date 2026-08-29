@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Tông màu Xanh Dương đậm của MB Bank */
       --primary: #1D4ED8; 
       --primary-hover: #1E40AF;
       --primary-light: #DBEAFE;
@@ -27,7 +26,6 @@
     body { 
       font-family: 'Plus Jakarta Sans', sans-serif; 
       background: var(--bg-color);
-      /* Nền gradient hiện đại ánh xanh dương nhạt */
       background-image: radial-gradient(at 0% 0%, hsla(217, 100%, 94%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(210, 100%, 94%, 1) 0, transparent 50%);
       display: flex; 
       justify-content: center; 
@@ -40,8 +38,6 @@
     .screen { display: none; flex-direction: column; flex-grow: 1; padding: clamp(12px, 4vw, 20px); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .screen.active { display: flex; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
-    .header-title { font-size: 14px; font-weight: 800; text-align: center; margin-bottom: 12px; margin-top: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
     
     .card { background: var(--card-bg); border-radius: 20px; padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow-soft); border: 1px solid rgba(255,255,255,0.8); }
     
@@ -56,7 +52,10 @@
     .copy-item:last-child { margin-bottom: 0; }
     
     .copy-info { display: flex; flex-direction: column; overflow: hidden; padding-right: 10px; width: 100%; }
-    .copy-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px; }
+    
+    /* Đã bỏ IN HOA, chỉnh lại cỡ chữ và màu sắc cho mềm mại */
+    .copy-lbl { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-bottom: 3px; }
+    
     .copy-val { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .copy-val.highlight { color: var(--primary); font-size: 14px; font-weight: 800; }
     
@@ -108,8 +107,7 @@
     <div id="screen-bill" class="screen">
       
       <!-- GIAO DIỆN CHƯA THANH TOÁN -->
-      <div id="bill-unpaid" style="display: flex; flex-direction: column; min-height: 100%;">
-        <div class="header-title" id="app-title-bill">MÃ GD: ---</div>
+      <div id="bill-unpaid" style="display: flex; flex-direction: column; min-height: 100%; justify-content: center;">
         
         <div class="card" style="margin-bottom: 0;">
           <div style="text-align: center;">
@@ -128,11 +126,10 @@
           <div class="copy-item">
             <div class="copy-info">
               <span class="copy-lbl">Ngân hàng</span>
-              <!-- Tên ngân hàng hiển thị -->
               <span class="copy-val" id="cp-bank">MB BANK</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-bank')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item">
@@ -141,7 +138,7 @@
               <span class="copy-val" id="cp-acc">VQRQAJLHK1914</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-acc')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item">
@@ -150,21 +147,21 @@
               <span class="copy-val" id="cp-name">DINH VIET TRUONG</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-name')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item">
             <div class="copy-info">
-              <span class="copy-lbl">Số tiền thanh toán</span>
+              <span class="copy-lbl">Số tiền</span>
               <span class="copy-val highlight" id="cp-amount">0 VNĐ</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-amount')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item" style="margin-bottom: 0;">
             <div class="copy-info">
-              <span class="copy-lbl">Nội dung (Bắt buộc)</span>
+              <span class="copy-lbl">Nội dung</span>
               <span class="copy-val" id="cp-content">---</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-content')">
@@ -232,7 +229,6 @@
       
       // Tải siêu tốc nếu link có sẵn số lượng và nội dung
       if (am && nd) {
-          document.title = "Đơn Hàng " + currentId;
           renderData({
               id: currentId,
               amount: am,
@@ -250,7 +246,6 @@
         .then(res => res.json())
         .then(result => {
           if (result.success) {
-            document.title = "Đơn Hàng " + result.data.id;
             renderData(result.data);
             switchScreen('bill');
           } else {
@@ -278,8 +273,7 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ";
 
-      // ĐIỀN BILL CHƯA THANH TOÁN
-      document.getElementById('app-title-bill').innerText = "MÃ GD: " + data.id;
+      // ĐIỀN BILL CHƯA THANH TOÁN (Đã bỏ tiêu đề hiển thị mã)
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       
@@ -358,7 +352,7 @@
         ctx.font = '18px Arial, sans-serif';
         ctx.fillText('Mã GD: ' + currentId, canvas.width / 2, 420);
         
-        ctx.fillStyle = '#1D4ED8'; // Cập nhật màu tiền tải về thành màu xanh MB Bank
+        ctx.fillStyle = '#1D4ED8';
         ctx.font = 'bold 28px Arial, sans-serif';
         ctx.fillText(amount, canvas.width / 2, 470);
         
@@ -371,7 +365,7 @@
         ctx.fillText('Sử dụng App Ngân hàng quét mã để thanh toán', canvas.width / 2, 580);
         
         const link = document.createElement('a');
-        link.download = 'QR_MBBank_' + currentId + '.png';
+        link.download = 'QR_ThanhToan_' + currentId + '.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
       };
