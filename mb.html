@@ -199,9 +199,9 @@
 
   <script>
     // ==========================================
-    // CẤU HÌNH ĐỌC TRỰC TIẾP TỪ GOOGLE SHEET
+    // API GOOGLE APPS SCRIPT (CHỐNG LỖI TRÌNH DUYỆT CHẶN)
     // ==========================================
-    const SHEET_ID = '1pKyvtyL9_aYt98nGbgYadu0YQgD7N9EJI7ZkMOg1xLo';
+    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
     
     const BANK_ID = 'mb'; 
     const ACCOUNT_NO = 'VQRQAJLBD8864';       
@@ -210,16 +210,6 @@
     let currentId = "";
     let urlParams;
     let pollingInterval;
-
-    // Bộ lọc dọn dẹp ký tự thừa từ Google
-    function cleanString(str) {
-        if (str == null) return "";
-        let s = String(str).trim();
-        if (s.startsWith('"') && s.endsWith('"')) {
-            s = s.substring(1, s.length - 1);
-        }
-        return s.trim();
-    }
 
     function showError(msg) {
         document.getElementById('error-msg').innerText = msg;
@@ -237,13 +227,14 @@
         return;
       }
       
-      // Lưới an toàn: Nếu quá 7 giây không kết nối được -> Báo lỗi để biết đường sửa
+      // Khắc phục kẹt Loading: Báo lỗi nếu 8s API không trả lời
       setTimeout(() => {
           if (document.getElementById('screen-loading').classList.contains('active')) {
-              showError("Không thể kết nối! Vui lòng kiểm tra lại quyền chia sẻ file Google Sheet (Đã bật 'Bất kỳ ai có liên kết' chưa?).");
+              showError("Lỗi kết nối hoặc mạng yếu. Trình duyệt đang chặn kết nối tới máy chủ.");
           }
-      }, 7000);
+      }, 8000);
 
+      // NẾU CÓ ĐỦ URL PARAM -> HIỆN UI 0 GIÂY VÀ BẮT ĐẦU QUÉT NGẦM
       if (am && nd) {
           renderData({
               id: currentId,
@@ -254,95 +245,32 @@
           switchScreen('bill');
           startPolling();
       } else {
-          fetchSheetData(false);
+          // NẾU THIẾU PARAM -> LẤY DỮ LIỆU TỪ GOOGLE SCRIPT LẦN ĐẦU
+          fetchData();
       }
     };
 
-    function fetchSheetData(isPolling = false) {
-      // Dùng cổng export chuẩn, chống lưu cache
-      const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&gid=0&t=${new Date().getTime()}`;
-
-      fetch(tsvUrl)
-        .then(res => {
-            if (!res.ok) throw new Error("Mã lỗi mạng: " + res.status);
-            return res.text();
-        })
-        .then(text => {
-          if (!text || text.trim() === "") {
-              if (!isPolling && !urlParams.get('am')) showError("Dữ liệu trong bảng đang trống.");
-              return;
-          }
-
-          // Kiểm tra xem Google có trả về mã HTML của trang đăng nhập không (Nghĩa là Sheet đang khóa)
-          if (text.toLowerCase().includes('<!doctype') || text.toLowerCase().includes('<html')) {
-              if (!isPolling && !urlParams.get('am')) {
-                  showError("Google Sheet bị khóa!\nVui lòng vào file Sheet > Nút 'Chia sẻ' > Đổi quyền thành 'Bất kỳ ai có liên kết' (Anyone with the link).");
-              }
-              return;
-          }
-
-          const lines = text.split('\n');
-          let headerRowIndex = -1;
-          let colId = -1, colAm = -1, colNd = -1, colSt = -1, colTm = -1;
-
-          // Quét 10 dòng đầu tiên để tìm dòng chứa tiêu đề
-          for (let i = 0; i < Math.min(10, lines.length); i++) {
-              const headers = lines[i].split('\t').map(h => cleanString(h).toLowerCase());
-              colId = headers.findIndex(h => h === 'mã giao dịch' || h.includes('mã gd') || h === 'id');
-              
-              if (colId !== -1) {
-                  headerRowIndex = i;
-                  colAm = headers.findIndex(h => h.includes('số tiền') || h.includes('tiền') || h.includes('amount'));
-                  colNd = headers.findIndex(h => h.includes('nội dung') || h.includes('content'));
-                  colSt = headers.findIndex(h => h.includes('trạng thái') || h.includes('status'));
-                  colTm = headers.findIndex(h => h.includes('thời gian thanh toán') || h.includes('hoàn tất'));
-                  break;
-              }
-          }
-
-          if (headerRowIndex === -1) {
-              if (!isPolling && !urlParams.get('am')) showError("Cấu trúc bảng không đúng! Không tìm thấy cột 'Mã giao dịch' (Cột A).");
-              return;
-          }
-
-          let foundData = null;
-          // Quét từ dưới lên trên để lấy dòng cuối cùng có ID trùng khớp
-          for (let i = lines.length - 1; i > headerRowIndex; i--) {
-              const cols = lines[i].split('\t');
-              if (cols.length <= colId) continue;
-              
-              const rowId = cleanString(cols[colId]);
-              if (rowId === currentId) {
-                  foundData = {
-                      id: rowId,
-                      amount: colAm !== -1 ? cleanString(cols[colAm]) : "",
-                      content: colNd !== -1 ? cleanString(cols[colNd]) : "",
-                      status: colSt !== -1 ? cleanString(cols[colSt]).toLowerCase() : "",
-                      paymentTime: colTm !== -1 ? cleanString(cols[colTm]) : ""
-                  };
-                  break;
-              }
-          }
-
-          if (foundData) {
-              if (urlParams.get('am')) foundData.amount = urlParams.get('am');
-              if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
-
-              renderData(foundData);
-
-              if (foundData.status.includes('đã thanh toán') || foundData.status.includes('thành công')) {
-                  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
-                  if (isPolling) showToast("Thanh toán thành công!");
-              } else {
-                  if (!isPolling) switchScreen('bill');
-                  if (!pollingInterval) startPolling();
-              }
+    function fetchData() {
+      fetch(GOOGLE_API_URL + "?id=" + currentId)
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            renderData(result.data);
+            
+            // Nếu chưa thanh toán thì nhảy sang Bill và khởi động quét ngầm
+            const statusStr = result.data.status ? String(result.data.status).toLowerCase() : '';
+            if (!statusStr.includes('đã thanh toán') && !statusStr.includes('thành công')) {
+                switchScreen('bill');
+                if (!pollingInterval) startPolling();
+            } else {
+                switchScreen('bill'); // Vẫn gọi sang bill nhưng renderData đã xử lý hiện màn hình xanh
+            }
           } else {
-              if (!isPolling && !urlParams.get('am')) showError("Mã giao dịch [" + currentId + "] không tồn tại trong hệ thống.");
+            showError(result.message);
           }
         })
         .catch(err => {
-            if (!isPolling && !urlParams.get('am')) showError("Trình duyệt chặn kết nối hoặc mất mạng. Chi tiết lỗi: " + err.message);
+          showError("Máy chủ đang bận hoặc trình duyệt chặn kết nối. Chi tiết: " + err.message);
         });
     }
 
@@ -378,11 +306,21 @@
       }
     }
 
-    // Quét ngầm 1.5 giây / lần
+    // GỌI API GOOGLE SCRIPT MỖI 1.5 GIÂY ĐỂ KIỂM TRA TRẠNG THÁI
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
-         fetchSheetData(true);
+        fetch(GOOGLE_API_URL + "?action=checkStatus&id=" + currentId)
+          .then(res => res.json())
+          .then(result => {
+            if (result.success && (String(result.data.status).toLowerCase().includes('đã thanh toán') || String(result.data.status).toLowerCase().includes('thành công'))) {
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+              renderData(result.data);
+              showToast("Thanh toán thành công!");
+            }
+          })
+          .catch(e => console.log("Đang chờ thanh toán ngầm..."));
       }, 1500); 
     }
 
