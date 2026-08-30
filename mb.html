@@ -103,7 +103,7 @@
     <!-- BILL THANH TOÁN -->
     <div id="screen-bill" class="screen">
       
-      <!-- GIAO DIỆN CHƯA THANH TOÁN -->
+      <!-- GIAO DIỆN CHỜ THANH TOÁN -->
       <div id="bill-unpaid" style="display: flex; flex-direction: column; min-height: 100%; justify-content: center;">
         
         <div class="card" style="margin-bottom: 0;">
@@ -199,7 +199,7 @@
 
   <script>
     // ==========================================
-    // API GOOGLE APPS SCRIPT (CHỐNG LỖI TRÌNH DUYỆT CHẶN)
+    // API GOOGLE APPS SCRIPT
     // ==========================================
     const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
     
@@ -227,14 +227,14 @@
         return;
       }
       
-      // Khắc phục kẹt Loading: Báo lỗi nếu 8s API không trả lời
+      // Khắc phục kẹt Loading: Báo lỗi nếu quá 8s API không trả lời
       setTimeout(() => {
           if (document.getElementById('screen-loading').classList.contains('active')) {
               showError("Lỗi kết nối hoặc mạng yếu. Trình duyệt đang chặn kết nối tới máy chủ.");
           }
       }, 8000);
 
-      // NẾU CÓ ĐỦ URL PARAM -> HIỆN UI 0 GIÂY VÀ BẮT ĐẦU QUÉT NGẦM
+      // Nếu có sẵn số tiền và nội dung ở đường link, tải UI thanh toán ngay lập tức
       if (am && nd) {
           renderData({
               id: currentId,
@@ -243,9 +243,9 @@
               status: "chờ thanh toán"
           });
           switchScreen('bill');
-          startPolling();
+          startPolling(); // Bắt đầu quét ngầm Google API
       } else {
-          // NẾU THIẾU PARAM -> LẤY DỮ LIỆU TỪ GOOGLE SCRIPT LẦN ĐẦU
+          // Lấy dữ liệu lần đầu
           fetchData();
       }
     };
@@ -257,13 +257,14 @@
           if (result.success) {
             renderData(result.data);
             
-            // Nếu chưa thanh toán thì nhảy sang Bill và khởi động quét ngầm
-            const statusStr = result.data.status ? String(result.data.status).toLowerCase() : '';
-            if (!statusStr.includes('đã thanh toán') && !statusStr.includes('thành công')) {
+            // Xử lý nghiêm ngặt chữ "đã thanh toán"
+            const statusStr = result.data.status ? String(result.data.status).trim().toLowerCase() : '';
+            if (statusStr === 'đã thanh toán') {
+                switchScreen('bill'); // renderData bên dưới đã lo việc hiện màn hình xanh
+            } else {
+                // Nếu là "chờ thanh toán" hoặc chuỗi rỗng -> Nhảy vào bill QR và gõ cửa quét ngầm liên tục
                 switchScreen('bill');
                 if (!pollingInterval) startPolling();
-            } else {
-                switchScreen('bill'); // Vẫn gọi sang bill nhưng renderData đã xử lý hiện màn hình xanh
             }
           } else {
             showError(result.message);
@@ -282,21 +283,24 @@
     }
 
     function renderData(data) {
-      var statusStr = data.status || '';
-      var isPaid = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công'));
+      // KIỂM TRA CHÍNH XÁC CHỮ "đã thanh toán"
+      var statusStr = data.status ? String(data.status).trim().toLowerCase() : '';
+      var isPaid = (statusStr === 'đã thanh toán');
 
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
+      // Nạp thẻ Chưa thanh toán
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
-      
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
+      // Nạp thẻ Đã thanh toán
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
 
+      // CHUYỂN ĐỔI MÀN HÌNH TƯƠNG ỨNG
       if (isPaid) {
         document.getElementById('bill-unpaid').style.display = 'none';
         document.getElementById('bill-paid').style.display = 'flex';
@@ -306,21 +310,24 @@
       }
     }
 
-    // GỌI API GOOGLE SCRIPT MỖI 1.5 GIÂY ĐỂ KIỂM TRA TRẠNG THÁI
+    // Quét trạng thái liên tục 1.5 giây / lần
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
         fetch(GOOGLE_API_URL + "?action=checkStatus&id=" + currentId)
           .then(res => res.json())
           .then(result => {
-            if (result.success && (String(result.data.status).toLowerCase().includes('đã thanh toán') || String(result.data.status).toLowerCase().includes('thành công'))) {
+            const statusStr = result.data.status ? String(result.data.status).trim().toLowerCase() : '';
+            
+            // Chỉ cần thấy chữ "đã thanh toán" là dừng quét và sang màn hình thành công
+            if (result.success && statusStr === 'đã thanh toán') {
               clearInterval(pollingInterval);
               pollingInterval = null;
               renderData(result.data);
               showToast("Thanh toán thành công!");
             }
           })
-          .catch(e => console.log("Đang chờ thanh toán ngầm..."));
+          .catch(e => console.log("Đang chờ duyệt ngầm..."));
       }, 1500); 
     }
 
