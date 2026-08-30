@@ -134,7 +134,7 @@
               <span class="copy-val" id="cp-acc">VQRQAJLBD8864</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-acc')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item">
@@ -143,7 +143,7 @@
               <span class="copy-val" id="cp-name">DINH VIET TRUONG</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-name')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item">
@@ -184,7 +184,7 @@
         <div class="success-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
         </div>
-        <h2 style="margin: 0 0 24px; color: var(--primary); font-size: 22px;">Thanh toán thành công</h2>
+        <h2 style="margin: 0 0 24px; color: var(--primary); font-size: 22px;">Giao dịch thành công</h2>
         
         <div class="card" style="margin: 0; text-align: left;">
           <div class="row"><span class="label">mã giao dịch</span><span class="value" id="bl-paid-id" style="font-family: monospace;">---</span></div>
@@ -267,16 +267,17 @@
           // Lấy dòng Header (Dòng 1) để định vị cột tự động và dọn dẹp ký tự ""
           const headers = lines[0].split('\t').map(h => cleanGoogleString(h).toLowerCase());
           
-          const colId = headers.findIndex(h => h.includes('id') || h.includes('mã'));
-          const colAm = headers.findIndex(h => h.includes('tiền') || h.includes('amount') || h.includes('giá'));
+          const colId = headers.findIndex(h => h.includes('mã giao dịch') || h.includes('id'));
+          const colAm = headers.findIndex(h => h.includes('số tiền') || h.includes('amount'));
           const colNd = headers.findIndex(h => h.includes('nội dung') || h.includes('content'));
           const colSt = headers.findIndex(h => h.includes('trạng thái') || h.includes('status'));
-          const colTm = headers.findIndex(h => h.includes('thời gian') || h.includes('time') || h.includes('lúc'));
+          // Cột Thời gian thanh toán phân biệt rõ với Thời gian tạo
+          const colTm = headers.findIndex(h => h.includes('thời gian thanh toán'));
 
           // Nếu sheet hoàn toàn sai cấu trúc hoặc không có cột ID
           if (colId === -1) {
               if(!isPolling && !urlParams.get('am')) {
-                  document.getElementById('error-msg').innerText = "Cấu trúc Google Sheet không hợp lệ (Không tìm thấy cột ID).";
+                  document.getElementById('error-msg').innerText = "Cấu trúc Google Sheet không hợp lệ (Không tìm thấy cột 'Mã giao dịch').";
                   switchScreen('error');
               }
               return;
@@ -364,12 +365,12 @@
       }
     }
 
-    // Quét ngầm kiểm tra File Sheet 2.5 giây / lần
+    // Quét ngầm kiểm tra File Sheet 1.5 giây / lần
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
          fetchSheetData(true);
-      }, 2500); 
+      }, 1500); 
     }
 
     /* TÍNH NĂNG LƯU MÃ QR */
