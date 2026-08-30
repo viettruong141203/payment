@@ -184,7 +184,7 @@
         <div class="success-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
         </div>
-        <h2 style="margin: 0 0 24px; color: var(--primary); font-size: 22px;">Giao dịch thành công</h2>
+        <h2 style="margin: 0 0 24px; color: var(--primary); font-size: 22px;">Thanh toán thành công</h2>
         
         <div class="card" style="margin: 0; text-align: left;">
           <div class="row"><span class="label">Mã giao dịch</span><span class="value" id="bl-paid-id" style="font-family: monospace;">---</span></div>
@@ -199,11 +199,9 @@
 
   <script>
     // ==========================================
-    // CẤU HÌNH HỆ THỐNG KÉP (TSV VĂN BẢN THÔ + APPS SCRIPT)
-    // - Chống lỗi ép kiểu dữ liệu của Google
-    // - Chống lỗi trình duyệt chặn mạng
+    // SỬ DỤNG DUY NHẤT GOOGLE APPS SCRIPT API
+    // Cập nhật ngầm 1.6 giây / lần
     // ==========================================
-    const SHEET_ID = '1pKyvtyL9_aYt98nGbgYadu0YQgD7N9EJI7ZkMOg1xLo';
     const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
     
     const BANK_ID = 'mb'; 
@@ -213,22 +211,9 @@
     let currentId = "";
     let urlParams;
     let pollingInterval;
-    let timeoutFallback;
-    let fetchCounter = 0; 
-
-    // Dọn dẹp ký tự thừa (vd: dấu ngoặc kép bọc ngoài)
-    function cleanString(str) {
-        if (!str) return "";
-        let s = String(str).trim();
-        if (s.startsWith('"') && s.endsWith('"')) {
-            s = s.substring(1, s.length - 1);
-        }
-        return s.trim();
-    }
 
     function showError(msg) {
         if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
-        if (timeoutFallback) { clearTimeout(timeoutFallback); timeoutFallback = null; }
         document.getElementById('error-msg').innerText = msg;
         switchScreen('error');
     }
@@ -244,134 +229,45 @@
         return;
       }
 
-      timeoutFallback = setTimeout(() => {
-          if (document.getElementById('screen-loading').classList.contains('active')) {
-              showError("Lỗi kết nối. Mạng không ổn định hoặc hệ thống đang bảo trì.");
-          }
-      }, 8000);
-
+      // Tải giao diện siêu tốc nếu link có sẵn tiền & nội dung
       if (am && nd) {
-          handleFoundData({
+          renderData({
               id: currentId,
               amount: am,
               content: nd,
               status: "chờ thanh toán"
-          }, false); 
+          });
+          switchScreen('bill');
+          startPolling();
       } else {
-          fetchBothSimultaneously(false);
+          // Lấy dữ liệu lần đầu bằng Apps Script
+          fetchData();
       }
     };
 
-    function fetchBothSimultaneously(isPolling = false) {
-        fetchCounter++;
-        const currentFetchId = fetchCounter;
-        let isDataHandled = false; 
-        let errorCount = 0;
-
-        const processResult = (foundData) => {
-            if (isDataHandled || currentFetchId !== fetchCounter) return;
-            isDataHandled = true;
-            handleFoundData(foundData, isPolling);
-        };
-
-        const processError = () => {
-            if (isDataHandled || currentFetchId !== fetchCounter) return;
-            errorCount++;
-            if (errorCount === 2) {
-                if (!isPolling && !urlParams.get('am')) {
-                    showError("Mã giao dịch [" + currentId + "] không tồn tại hoặc lỗi kết nối.");
-                }
-            }
-        };
-
-        // ================= LUỒNG 1: QUÉT TSV (KHÔNG BỊ LỖI KIỂU DỮ LIỆU) =================
-        const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:tsv&t=${new Date().getTime()}`;
-        fetch(tsvUrl)
-            .then(res => {
-                if (!res.ok) throw new Error("HTTP error");
-                return res.text();
-            })
-            .then(text => {
-                if (text.toLowerCase().includes('<!doctype') || text.toLowerCase().includes('<html')) throw new Error("Private sheet");
-                
-                const lines = text.split('\n');
-                let colId = 0, colAm = 2, colNd = 3, colSt = 4, colTm = 5; // Cột mặc định dự phòng
-
-                // Tự động tìm vị trí cột chuẩn xác
-                for (let i = 0; i < Math.min(10, lines.length); i++) {
-                    const headers = lines[i].split('\t').map(h => cleanString(h).toLowerCase());
-                    const tempId = headers.findIndex(h => h === 'mã giao dịch' || h.includes('mã gd') || h === 'id' || h.includes('mã'));
-                    
-                    if (tempId !== -1) {
-                        colId = tempId;
-                        const tempAm = headers.findIndex(h => h.includes('số tiền') || h.includes('amount') || h.includes('tiền'));
-                        if (tempAm !== -1) colAm = tempAm;
-                        const tempNd = headers.findIndex(h => h.includes('nội dung') || h.includes('content'));
-                        if (tempNd !== -1) colNd = tempNd;
-                        const tempSt = headers.findIndex(h => h.includes('trạng thái') || h.includes('status'));
-                        if (tempSt !== -1) colSt = tempSt;
-                        const tempTm = headers.findIndex(h => h.includes('thời gian thanh toán') || h.includes('hoàn tất'));
-                        if (tempTm !== -1) colTm = tempTm;
-                        break;
-                    }
-                }
-
-                let found = null;
-                // Quét ngược để đảm bảo lấy dòng mới nhất
-                for (let i = lines.length - 1; i >= 1; i--) {
-                    const cols = lines[i].split('\t');
-                    if (cols.length <= colId) continue;
-                    
-                    const rowId = cleanString(cols[colId]);
-                    if (rowId === currentId) {
-                        found = {
-                            id: rowId,
-                            amount: cols.length > colAm ? cleanString(cols[colAm]) : "",
-                            content: cols.length > colNd ? cleanString(cols[colNd]) : "",
-                            status: cols.length > colSt ? cleanString(cols[colSt]).toLowerCase() : "",
-                            paymentTime: cols.length > colTm ? cleanString(cols[colTm]) : ""
-                        };
-                        break;
-                    }
-                }
-                
-                if (found) processResult(found);
-                else processError();
-            })
-            .catch(e => processError());
-
-        // ================= LUỒNG 2: GỌI TỪ APPS SCRIPT (CHỐNG LỖI MẠNG) =================
-        fetch(GOOGLE_API_URL + "?id=" + currentId + "&t=" + new Date().getTime())
-            .then(res => res.json())
-            .then(result => {
-                if (result.success && result.data) {
-                    let data = result.data;
-                    data.status = data.status ? String(data.status).toLowerCase() : "";
-                    processResult(data);
-                } else {
-                    processError();
-                }
-            })
-            .catch(e => processError());
-    }
-
-    function handleFoundData(foundData, isPolling) {
-        if (urlParams.get('am')) foundData.amount = urlParams.get('am');
-        if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
-
-        renderData(foundData);
-
-        if (foundData.status.includes('đã thanh toán') || foundData.status.includes('thành công')) {
-            if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
-            if (timeoutFallback) clearTimeout(timeoutFallback);
-            if (isPolling) showToast("Thanh toán thành công!");
-        } else {
-            if (!isPolling) {
-                if (timeoutFallback) clearTimeout(timeoutFallback);
+    function fetchData() {
+      // Thêm tham số t để chống cache dữ liệu cũ
+      fetch(GOOGLE_API_URL + "?id=" + currentId + "&t=" + new Date().getTime())
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            renderData(result.data);
+            
+            // Xử lý chuyển đổi trạng thái
+            const statusStr = result.data.status ? String(result.data.status).trim().toLowerCase() : '';
+            if (statusStr.includes('đã thanh toán') || statusStr.includes('thành công')) {
+                switchScreen('bill'); 
+            } else {
                 switchScreen('bill');
+                if (!pollingInterval) startPolling();
             }
-            if (!pollingInterval) startPolling();
-        }
+          } else {
+            showError(result.message);
+          }
+        })
+        .catch(err => {
+          showError("Lỗi kết nối máy chủ dữ liệu. Vui lòng thử lại.");
+        });
     }
 
     function switchScreen(screenName) {
@@ -388,10 +284,12 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
+      // Điền thẻ Chưa thanh toán
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
+      // Điền thẻ Đã thanh toán
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
@@ -405,12 +303,27 @@
       }
     }
 
-    // Quét ngầm 1.5 giây / lần
+    // Quét ngầm mỗi 1.6 giây / lần qua Apps Script API
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
-         fetchBothSimultaneously(true);
-      }, 1500); 
+        fetch(GOOGLE_API_URL + "?action=checkStatus&id=" + currentId + "&t=" + new Date().getTime())
+          .then(res => res.json())
+          .then(result => {
+            if (result.success) {
+                const statusStr = result.data.status ? String(result.data.status).trim().toLowerCase() : '';
+                
+                // Nhảy sang Giao dịch thành công
+                if (statusStr.includes('đã thanh toán') || statusStr.includes('thành công')) {
+                  clearInterval(pollingInterval);
+                  pollingInterval = null;
+                  renderData(result.data);
+                  showToast("Thanh toán thành công!");
+                }
+            }
+          })
+          .catch(e => console.log("Đang chờ thanh toán..."));
+      }, 1600); // 1.6s
     }
 
     /* TÍNH NĂNG LƯU MÃ QR */
