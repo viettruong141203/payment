@@ -134,7 +134,7 @@
               <span class="copy-val" id="cp-acc">VQRQAJLBD8864</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-acc')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item">
@@ -143,7 +143,7 @@
               <span class="copy-val" id="cp-name">DINH VIET TRUONG</span>
             </div>
             <button class="btn-copy-icon" onclick="copyText('cp-name')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
             </button>
           </div>
           <div class="copy-item">
@@ -184,7 +184,7 @@
         <div class="success-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
         </div>
-        <h2 style="margin: 0 0 24px; color: var(--primary); font-size: 22px;">Giao dịch thành công</h2>
+        <h2 style="margin: 0 0 24px; color: var(--primary); font-size: 22px;">Thanh toán thành công</h2>
         
         <div class="card" style="margin: 0; text-align: left;">
           <div class="row"><span class="label">mã giao dịch</span><span class="value" id="bl-paid-id" style="font-family: monospace;">---</span></div>
@@ -203,7 +203,6 @@
     // ==========================================
     const SHEET_ID = '1pKyvtyL9_aYt98nGbgYadu0YQgD7N9EJI7ZkMOg1xLo';
     
-    // THÔNG TIN NGÂN HÀNG MB BANK CẬP NHẬT
     const BANK_ID = 'mb'; 
     const ACCOUNT_NO = 'VQRQAJLBD8864';       
     const ACCOUNT_NAME = 'DINH VIET TRUONG';      
@@ -212,6 +211,16 @@
     let urlParams;
     let pollingInterval;
 
+    // Hàm tiện ích: Loại bỏ dấu ngoặc kép "" bao quanh dữ liệu từ Google trả về
+    function cleanGoogleString(str) {
+        if (!str) return "";
+        let cleaned = str.trim();
+        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+            cleaned = cleaned.substring(1, cleaned.length - 1);
+        }
+        return cleaned.trim();
+    }
+
     window.onload = function() {
       urlParams = new URLSearchParams(window.location.search);
       currentId = urlParams.get('id');
@@ -219,7 +228,7 @@
       const nd = urlParams.get('nd'); 
       
       if (!currentId) {
-        document.getElementById('error-msg').innerText = "Vui lòng quét QR hoặc truy cập từ link hệ thống cung cấp.";
+        document.getElementById('error-msg').innerText = "Vui lòng quét QR hoặc truy cập từ link hệ thống cung cấp (Thiếu ID).";
         switchScreen('error');
         return;
       }
@@ -233,27 +242,30 @@
               status: "chờ thanh toán"
           });
           switchScreen('bill');
-          startPolling(); // Ép hệ thống bắt đầu quét dữ liệu ngầm liên tục
+          // Bắt đầu quét Google Sheet ngầm để check trạng thái
+          startPolling();
       } else {
-          // Bắt đầu kéo dữ liệu từ Sheet
+          // Kéo dữ liệu từ Sheet lần đầu nếu link thiếu param
           fetchSheetData(false);
       }
     };
 
-    // Hàm lấy dữ liệu liên tục từ Sheet
+    // Hàm lấy dữ liệu sử dụng cổng Google Visualization (Tránh lỗi CORS 100%)
     function fetchSheetData(isPolling = false) {
-      const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&t=${new Date().getTime()}`;
+      // Dùng cổng gviz/tq hỗ trợ xuất TSV (không bị trình duyệt chặn)
+      const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:tsv&t=${new Date().getTime()}`;
 
       fetch(tsvUrl)
         .then(res => {
-            if(!res.ok) throw new Error("Quyền bị từ chối");
+            if(!res.ok) throw new Error("Quyền truy cập bị từ chối");
             return res.text();
         })
         .then(text => {
           const lines = text.split('\n');
           if (lines.length < 2) return;
 
-          const headers = lines[0].split('\t').map(h => h.toLowerCase().trim());
+          // Lấy dòng Header (Dòng 1) để định vị cột tự động và dọn dẹp ký tự ""
+          const headers = lines[0].split('\t').map(h => cleanGoogleString(h).toLowerCase());
           
           const colId = headers.findIndex(h => h.includes('id') || h.includes('mã'));
           const colAm = headers.findIndex(h => h.includes('tiền') || h.includes('amount') || h.includes('giá'));
@@ -261,35 +273,38 @@
           const colSt = headers.findIndex(h => h.includes('trạng thái') || h.includes('status'));
           const colTm = headers.findIndex(h => h.includes('thời gian') || h.includes('time') || h.includes('lúc'));
 
+          // Nếu sheet hoàn toàn sai cấu trúc hoặc không có cột ID
           if (colId === -1) {
               if(!isPolling && !urlParams.get('am')) {
-                  document.getElementById('error-msg').innerText = "Cấu trúc Google Sheet không hợp lệ.";
+                  document.getElementById('error-msg').innerText = "Cấu trúc Google Sheet không hợp lệ (Không tìm thấy cột ID).";
                   switchScreen('error');
               }
               return;
           }
 
           let foundData = null;
+          // Quét từ dưới lên trên (để lấy dòng mới nhất)
           for (let i = lines.length - 1; i >= 1; i--) {
             const cols = lines[i].split('\t');
-            if (cols[colId] && cols[colId].trim() === currentId) {
+            const rowId = cleanGoogleString(cols[colId]);
+            
+            if (rowId === currentId) {
                 foundData = {
-                    id: cols[colId].trim(),
-                    amount: colAm !== -1 ? cols[colAm].trim() : "",
-                    content: colNd !== -1 ? cols[colNd].trim() : "",
-                    status: colSt !== -1 ? cols[colSt].trim().toLowerCase() : "",
-                    paymentTime: colTm !== -1 ? cols[colTm].trim() : ""
+                    id: rowId,
+                    amount: colAm !== -1 ? cleanGoogleString(cols[colAm]) : "",
+                    content: colNd !== -1 ? cleanGoogleString(cols[colNd]) : "",
+                    status: colSt !== -1 ? cleanGoogleString(cols[colSt]).toLowerCase() : "",
+                    paymentTime: colTm !== -1 ? cleanGoogleString(cols[colTm]) : ""
                 };
                 break;
             }
           }
 
           if (foundData) {
-            // Vẫn ưu tiên thông số trên URL nếu có
+            // Giữ ưu tiên param URL
             if (urlParams.get('am')) foundData.amount = urlParams.get('am');
             if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
 
-            // Luôn vẽ lại dữ liệu mới nhất (Cập nhật thời gian thực từ Sheet)
             renderData(foundData);
 
             if (foundData.status.includes('đã thanh toán') || foundData.status.includes('thành công')) {
@@ -297,9 +312,10 @@
                 if(isPolling) showToast("Thanh toán thành công!");
             } else {
                 if(!isPolling) switchScreen('bill');
-                if(!pollingInterval) startPolling(); // Luôn đảm bảo ngầm quét nếu chưa xong
+                if(!pollingInterval) startPolling();
             }
           } else {
+             // Không tìm thấy ID trong Sheet
              if (!isPolling && !urlParams.get('am')) {
                 document.getElementById('error-msg').innerText = "Không tìm thấy mã giao dịch này trong hệ thống.";
                 switchScreen('error');
@@ -328,12 +344,13 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
-      // Cập nhật thẻ Bill
+      // Cập nhật thẻ Bill Chưa Thanh Toán
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
+      // Cập nhật thẻ Đã Thanh Toán
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
@@ -347,7 +364,7 @@
       }
     }
 
-    // Quét Google Sheet liên tục 2.5 giây / lần
+    // Quét ngầm kiểm tra File Sheet 2.5 giây / lần
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
