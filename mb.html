@@ -199,9 +199,7 @@
 
   <script>
     // ==========================================
-    // CẤU HÌNH HỆ THỐNG KÉP (HYBRID FETCH)
-    // Cổng 1: Đọc JSON trực tiếp từ Sheet (Tốc độ cao)
-    // Cổng 2: Đọc qua Apps Script API (Chống lỗi chặn CORS 100%)
+    // CẤU HÌNH HỆ THỐNG FETCH SONG SONG BẤT TỬ
     // ==========================================
     const SHEET_ID = '1pKyvtyL9_aYt98nGbgYadu0YQgD7N9EJI7ZkMOg1xLo';
     const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
@@ -214,6 +212,7 @@
     let urlParams;
     let pollingInterval;
     let timeoutFallback;
+    let fetchCounter = 0; // Biến đánh dấu vòng lặp quét
 
     function showError(msg) {
         if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
@@ -233,118 +232,119 @@
         return;
       }
 
-      // Bộ đếm an toàn: Quá 8s thì báo lỗi mất mạng
+      // Giới hạn chờ 8s cho lần đầu tiên
       timeoutFallback = setTimeout(() => {
           if (document.getElementById('screen-loading').classList.contains('active')) {
-              showError("Lỗi kết nối. Vui lòng kiểm tra lại mạng hoặc tải lại trang.");
+              showError("Lỗi kết nối. Mạng không ổn định hoặc hệ thống đang bảo trì.");
           }
       }, 8000);
 
-      // Tải siêu tốc nếu link có sẵn tiền & nội dung
+      // Tải UI 0 giây nếu có sẵn tham số
       if (am && nd) {
           handleFoundData({
               id: currentId,
               amount: am,
               content: nd,
               status: "chờ thanh toán"
-          }, false); // Load thẳng vào UI
+          }, false); 
       } else {
-          // Bắt đầu kéo dữ liệu bằng cơ chế Kép (Hybrid)
-          fetchHybridData(false);
+          // Khởi động chạy song song 2 luồng
+          fetchBothSimultaneously(false);
       }
     };
 
-    // Hàm gọi dữ liệu kết hợp 2 phương pháp
-    function fetchHybridData(isPolling = false) {
-      const jsonUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&t=${new Date().getTime()}`;
+    // THUẬT TOÁN ĐUA DỮ LIỆU SONG SONG (DATA RACE)
+    function fetchBothSimultaneously(isPolling = false) {
+        fetchCounter++;
+        const currentFetchId = fetchCounter;
+        let isDataHandled = false; // Khóa chống trùng lặp
+        let errorCount = 0;
 
-      // ƯU TIÊN 1: Gọi thẳng trực tiếp vào Sheet bằng JSON
-      fetch(jsonUrl)
-        .then(res => {
-            if (!res.ok) throw new Error("HTTP error");
-            return res.text();
-        })
-        .then(text => {
-          // Nếu bị đẩy sang trang đăng nhập HTML -> Bị khóa file -> Ép chuyển sang dùng API Script
-          if (text.toLowerCase().includes('<!doctype') || text.toLowerCase().includes('<html')) {
-              throw new Error("Private sheet");
-          }
+        // Xử lý dữ liệu lấy được (Ai về trước sẽ được chạy lệnh này)
+        const processResult = (foundData) => {
+            // Nếu vòng lặp này đã có bên lấy được dữ liệu, bỏ qua bên về sau
+            if (isDataHandled || currentFetchId !== fetchCounter) return;
+            isDataHandled = true;
+            handleFoundData(foundData, isPolling);
+        };
 
-          const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\);?/);
-          if (!match || !match[1]) throw new Error("Invalid response");
-          
-          const dataJSON = JSON.parse(match[1]);
-          if (dataJSON.status === "error") throw new Error("Query error");
+        // Xử lý khi 1 trong 2 luồng gặp lỗi
+        const processError = () => {
+            if (isDataHandled || currentFetchId !== fetchCounter) return;
+            errorCount++;
+            // Chỉ báo lỗi lên UI nếu CẢ 2 luồng đều thất bại
+            if (errorCount === 2) {
+                if (!isPolling && !urlParams.get('am')) {
+                    showError("Mã giao dịch [" + currentId + "] không tồn tại hoặc lỗi kết nối.");
+                }
+            }
+        };
 
-          const rows = dataJSON.table.rows;
-          let foundData = null;
+        // ================= LUỒNG 1: QUÉT TRỰC TIẾP TỪ SHEET (CỰC NHANH) =================
+        const jsonUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&t=${new Date().getTime()}`;
+        fetch(jsonUrl)
+            .then(res => res.text())
+            .then(text => {
+                if (text.toLowerCase().includes('<!doctype') || text.toLowerCase().includes('<html')) throw new Error("Private sheet");
+                const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\);?/);
+                if (!match || !match[1]) throw new Error("Invalid format");
+                const dataJSON = JSON.parse(match[1]);
+                if (dataJSON.status === "error") throw new Error("Google Error");
 
-          // Quét từ dưới lên
-          for (let i = rows.length - 1; i >= 0; i--) {
-              const row = rows[i];
-              if (!row || !row.c || row.c[0] == null) continue;
-              
-              const rowId = String(row.c[0].v).trim();
-              if (rowId === currentId) {
-                  let rawAm = row.c[2] && row.c[2].v != null ? String(Math.round(Number(row.c[2].v))) : "";
-                  foundData = {
-                      id: rowId,
-                      amount: rawAm,
-                      content: row.c[3] && row.c[3].v != null ? String(row.c[3].v) : "",
-                      status: row.c[4] && row.c[4].v != null ? String(row.c[4].v).toLowerCase() : "",
-                      paymentTime: row.c[5] ? String(row.c[5].f || row.c[5].v || "") : ""
-                  };
-                  break;
-              }
-          }
+                const rows = dataJSON.table.rows;
+                let found = null;
+                for (let i = rows.length - 1; i >= 0; i--) {
+                    const row = rows[i];
+                    if (!row || !row.c || row.c[0] == null) continue;
+                    const rowId = String(row.c[0].v).trim();
+                    if (rowId === currentId) {
+                        let rawAm = row.c[2] && row.c[2].v != null ? String(Math.round(Number(row.c[2].v))) : "";
+                        found = {
+                            id: rowId,
+                            amount: rawAm,
+                            content: row.c[3] && row.c[3].v != null ? String(row.c[3].v) : "",
+                            status: row.c[4] && row.c[4].v != null ? String(row.c[4].v).toLowerCase() : "",
+                            paymentTime: row.c[5] ? String(row.c[5].f || row.c[5].v || "") : ""
+                        };
+                        break;
+                    }
+                }
+                if (found) processResult(found);
+                else processError();
+            })
+            .catch(e => processError());
 
-          if (foundData) {
-              handleFoundData(foundData, isPolling);
-          } else {
-              if (!isPolling && !urlParams.get('am')) showError("Mã giao dịch [" + currentId + "] không tồn tại trong bảng.");
-          }
-        })
-        .catch(err => {
-            // ƯU TIÊN 2: NẾU TRÌNH DUYỆT CHẶN HOẶC LỖI -> TỰ ĐỘNG CHUYỂN SANG DÙNG APPS SCRIPT
-            fetchAppsScriptFallback(isPolling);
-        });
+        // ================= LUỒNG 2: GỌI TỪ APPS SCRIPT (CHỐNG LỖI / KHÓA SHEET) =================
+        fetch(GOOGLE_API_URL + "?id=" + currentId + "&t=" + new Date().getTime())
+            .then(res => res.json())
+            .then(result => {
+                if (result.success && result.data) {
+                    let data = result.data;
+                    data.status = data.status ? String(data.status).toLowerCase() : "";
+                    processResult(data);
+                } else {
+                    processError();
+                }
+            })
+            .catch(e => processError());
     }
 
-    // Luồng dữ liệu bọc lót bằng Apps Script
-    function fetchAppsScriptFallback(isPolling) {
-      fetch(GOOGLE_API_URL + "?id=" + currentId)
-        .then(res => res.json())
-        .then(result => {
-            if (result.success) {
-                let data = result.data;
-                data.status = data.status ? String(data.status).toLowerCase() : "";
-                handleFoundData(data, isPolling);
-            } else {
-                if (!isPolling && !urlParams.get('am')) showError(result.message);
-            }
-        })
-        .catch(e => {
-            if (!isPolling && !urlParams.get('am')) {
-                showError("Hệ thống đang bảo trì hoặc mất kết nối. Vui lòng thử lại sau.");
-            }
-        });
-    }
-
-    // Xử lý dữ liệu chung cho cả 2 luồng
+    // Đưa dữ liệu thành công lên màn hình
     function handleFoundData(foundData, isPolling) {
         if (urlParams.get('am')) foundData.amount = urlParams.get('am');
         if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
 
         renderData(foundData);
 
-        // Nhận diện chuẩn xác trạng thái thanh toán
+        // Phát hiện trạng thái "đã thanh toán"
         if (foundData.status.includes('đã thanh toán') || foundData.status.includes('thành công')) {
             if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
             if (timeoutFallback) clearTimeout(timeoutFallback);
             if (isPolling) showToast("Thanh toán thành công!");
         } else {
+            // Còn chờ thanh toán thì tiếp tục vòng lặp
             if (!isPolling) {
-                clearTimeout(timeoutFallback);
+                if (timeoutFallback) clearTimeout(timeoutFallback);
                 switchScreen('bill');
             }
             if (!pollingInterval) startPolling();
@@ -365,17 +365,16 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
-      // Nạp thẻ Chưa thanh toán
+      // Điền thẻ Thanh Toán
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
-      // Nạp thẻ Đã thanh toán
+      // Điền thẻ Thành Công
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
 
-      // CHUYỂN ĐỔI MÀN HÌNH NẾU ĐÃ THANH TOÁN
       if (isPaid) {
         document.getElementById('bill-unpaid').style.display = 'none';
         document.getElementById('bill-paid').style.display = 'flex';
@@ -385,11 +384,11 @@
       }
     }
 
-    // Quét ngầm vòng lặp 1.5 giây / lần bằng cơ chế kép
+    // Thiết lập quét song song 1.5 giây / lần
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
-         fetchHybridData(true);
+         fetchBothSimultaneously(true);
       }, 1500); 
     }
 
