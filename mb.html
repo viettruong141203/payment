@@ -52,9 +52,7 @@
     .copy-item:last-child { margin-bottom: 0; }
     
     .copy-info { display: flex; flex-direction: column; overflow: hidden; padding-right: 10px; width: 100%; }
-    
     .copy-lbl { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-bottom: 3px; }
-    
     .copy-val { font-size: 13px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .copy-val.highlight { color: var(--primary); font-size: 14px; font-weight: 800; }
     
@@ -113,7 +111,6 @@
             <div class="qr-box">
               <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
             </div>
-            <!-- Nút Lưu QR -->
             <div>
               <button class="btn-save-qr" onclick="downloadQR()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -227,7 +224,7 @@
         return;
       }
       
-      // Tải giao diện siêu tốc 0 giây
+      // Tải giao diện siêu tốc 0 giây nếu link có chứa nội dung & số tiền
       if (am && nd) {
           renderData({
               id: currentId,
@@ -236,20 +233,20 @@
               status: "chờ thanh toán"
           });
           switchScreen('bill');
-          startPolling(); // Khởi động ngay luồng quét ngầm
+          startPolling(); // Ép hệ thống bắt đầu quét dữ liệu ngầm liên tục
       } else {
+          // Bắt đầu kéo dữ liệu từ Sheet
           fetchSheetData(false);
       }
     };
 
-    // Hàm lấy dữ liệu bằng cách tải file TSV của Sheet
+    // Hàm lấy dữ liệu liên tục từ Sheet
     function fetchSheetData(isPolling = false) {
-      // Ép Google luôn trả về dữ liệu mới nhất (chống cache triệt để)
-      const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&gid=0&nocache=${new Date().getTime()}`;
+      const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&t=${new Date().getTime()}`;
 
       fetch(tsvUrl)
         .then(res => {
-            if(!res.ok) throw new Error("Quyền truy cập bị từ chối");
+            if(!res.ok) throw new Error("Quyền bị từ chối");
             return res.text();
         })
         .then(text => {
@@ -266,44 +263,41 @@
 
           if (colId === -1) {
               if(!isPolling && !urlParams.get('am')) {
-                  document.getElementById('error-msg').innerText = "Cấu trúc Google Sheet không hợp lệ (Thiếu cột ID/Mã).";
+                  document.getElementById('error-msg').innerText = "Cấu trúc Google Sheet không hợp lệ.";
                   switchScreen('error');
               }
               return;
           }
 
           let foundData = null;
-          // Quét từ dưới lên để lấy dòng mới nhất
           for (let i = lines.length - 1; i >= 1; i--) {
             const cols = lines[i].split('\t');
             if (cols[colId] && cols[colId].trim() === currentId) {
                 foundData = {
                     id: cols[colId].trim(),
-                    amount: colAm !== -1 ? (cols[colAm] || "").trim() : "",
-                    content: colNd !== -1 ? (cols[colNd] || "").trim() : "",
-                    status: colSt !== -1 ? (cols[colSt] || "").trim().toLowerCase() : "",
-                    paymentTime: colTm !== -1 ? (cols[colTm] || "").trim() : ""
+                    amount: colAm !== -1 ? cols[colAm].trim() : "",
+                    content: colNd !== -1 ? cols[colNd].trim() : "",
+                    status: colSt !== -1 ? cols[colSt].trim().toLowerCase() : "",
+                    paymentTime: colTm !== -1 ? cols[colTm].trim() : ""
                 };
                 break;
             }
           }
 
           if (foundData) {
-            // Giữ ưu tiên thông tin hiển thị nếu trạng thái chưa hoàn tất
-            if (!foundData.status.includes('đã thanh toán') && !foundData.status.includes('thành công')) {
-                if (urlParams.get('am')) foundData.amount = urlParams.get('am');
-                if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
-            }
+            // Vẫn ưu tiên thông số trên URL nếu có
+            if (urlParams.get('am')) foundData.amount = urlParams.get('am');
+            if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
 
-            // Nếu trạng thái nhảy sang Đã thanh toán -> Kích hoạt màn hình xanh ngay lập tức
+            // Luôn vẽ lại dữ liệu mới nhất (Cập nhật thời gian thực từ Sheet)
+            renderData(foundData);
+
             if (foundData.status.includes('đã thanh toán') || foundData.status.includes('thành công')) {
-                if(pollingInterval) clearInterval(pollingInterval);
-                pollingInterval = null;
-                renderData(foundData);
-                if(isPolling) showToast("Giao dịch thành công!");
-            } else if (!isPolling) {
-                renderData(foundData);
-                switchScreen('bill');
+                if(pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+                if(isPolling) showToast("Thanh toán thành công!");
+            } else {
+                if(!isPolling) switchScreen('bill');
+                if(!pollingInterval) startPolling(); // Luôn đảm bảo ngầm quét nếu chưa xong
             }
           } else {
              if (!isPolling && !urlParams.get('am')) {
@@ -312,7 +306,12 @@
              }
           }
         })
-        .catch(err => console.log("Đang kiểm tra dữ liệu ngầm..."));
+        .catch(err => {
+            if(!isPolling && !urlParams.get('am')) {
+                document.getElementById('error-msg').innerText = "Vui lòng mở quyền chia sẻ Google Sheet thành 'Bất kỳ ai có liên kết'.";
+                switchScreen('error');
+            }
+        });
     }
 
     function switchScreen(screenName) {
@@ -327,20 +326,18 @@
       var isPaid = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công'));
 
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
-      let displayAmount = rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ";
+      let displayAmount = rawAmount ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
-      // Cập nhật thẻ Chưa Thanh Toán
+      // Cập nhật thẻ Bill
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
-      // Cập nhật thẻ Đã Thanh Toán
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
 
-      // Logic "Nhảy dữ liệu": Ép tắt màn hình cũ, bật màn hình mới ngay khi isPaid = true
       if (isPaid) {
         document.getElementById('bill-unpaid').style.display = 'none';
         document.getElementById('bill-paid').style.display = 'flex';
@@ -350,12 +347,12 @@
       }
     }
 
-    // Quét ngầm liên tục mỗi 2 giây
+    // Quét Google Sheet liên tục 2.5 giây / lần
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
          fetchSheetData(true);
-      }, 2000); 
+      }, 2500); 
     }
 
     /* TÍNH NĂNG LƯU MÃ QR */
