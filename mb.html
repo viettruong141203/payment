@@ -211,14 +211,19 @@
     let urlParams;
     let pollingInterval;
 
-    // Loại bỏ dấu ngoặc kép thừa "" sinh ra từ cấu trúc TSV của Google
-    function cleanGoogleString(str) {
-        if (!str) return "";
-        let cleaned = str.trim();
-        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
-            cleaned = cleaned.substring(1, cleaned.length - 1);
+    // Bộ lọc dọn dẹp ký tự thừa từ Google
+    function cleanString(str) {
+        if (str == null) return "";
+        let s = String(str).trim();
+        if (s.startsWith('"') && s.endsWith('"')) {
+            s = s.substring(1, s.length - 1);
         }
-        return cleaned.trim();
+        return s.trim();
+    }
+
+    function showError(msg) {
+        document.getElementById('error-msg').innerText = msg;
+        switchScreen('error');
     }
 
     window.onload = function() {
@@ -228,12 +233,17 @@
       const nd = urlParams.get('nd'); 
       
       if (!currentId) {
-        document.getElementById('error-msg').innerText = "Vui lòng quét QR hoặc truy cập từ link hệ thống cung cấp (Thiếu ID).";
-        switchScreen('error');
+        showError("Vui lòng quét QR hoặc truy cập từ link hệ thống cung cấp (Thiếu mã ID).");
         return;
       }
       
-      // Tải giao diện siêu tốc 0 giây
+      // Lưới an toàn: Nếu quá 7 giây không kết nối được -> Báo lỗi để biết đường sửa
+      setTimeout(() => {
+          if (document.getElementById('screen-loading').classList.contains('active')) {
+              showError("Không thể kết nối! Vui lòng kiểm tra lại quyền chia sẻ file Google Sheet (Đã bật 'Bất kỳ ai có liên kết' chưa?).");
+          }
+      }, 7000);
+
       if (am && nd) {
           renderData({
               id: currentId,
@@ -249,102 +259,90 @@
     };
 
     function fetchSheetData(isPolling = false) {
-      // Gọi trực tiếp dữ liệu thô (TSV) từ Google Sheet
-      const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&t=${new Date().getTime()}`;
+      // Dùng cổng export chuẩn, chống lưu cache
+      const tsvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=tsv&gid=0&t=${new Date().getTime()}`;
 
       fetch(tsvUrl)
         .then(res => {
-            if(!res.ok) throw new Error("Quyền bị từ chối");
+            if (!res.ok) throw new Error("Mã lỗi mạng: " + res.status);
             return res.text();
         })
         .then(text => {
-          // BỘ LỌC 1: NẾU GOOGLE TRẢ VỀ HTML (Trang Yêu cầu Đăng nhập) -> Tức là Sheet đang khóa
-          if (text.toLowerCase().includes('<!doctype html>') || text.toLowerCase().includes('<html')) {
-              if(!isPolling && !urlParams.get('am')) {
-                  document.getElementById('error-msg').innerText = "Lỗi Quyền Truy Cập!\nBạn chưa mở chế độ 'Bất kỳ ai có liên kết' (Anyone with the link) cho file Google Sheet này.";
-                  switchScreen('error');
+          if (!text || text.trim() === "") {
+              if (!isPolling && !urlParams.get('am')) showError("Dữ liệu trong bảng đang trống.");
+              return;
+          }
+
+          // Kiểm tra xem Google có trả về mã HTML của trang đăng nhập không (Nghĩa là Sheet đang khóa)
+          if (text.toLowerCase().includes('<!doctype') || text.toLowerCase().includes('<html')) {
+              if (!isPolling && !urlParams.get('am')) {
+                  showError("Google Sheet bị khóa!\nVui lòng vào file Sheet > Nút 'Chia sẻ' > Đổi quyền thành 'Bất kỳ ai có liên kết' (Anyone with the link).");
               }
               return;
           }
 
           const lines = text.split('\n');
-          if (lines.length < 1) return;
-
           let headerRowIndex = -1;
           let colId = -1, colAm = -1, colNd = -1, colSt = -1, colTm = -1;
 
-          // BỘ LỌC 2: Quét xuyên 5 dòng đầu tiên để tìm chính xác dòng chứa Tiêu đề
-          for (let i = 0; i < Math.min(5, lines.length); i++) {
-            const headers = lines[i].split('\t').map(h => cleanGoogleString(h).toLowerCase());
-            
-            // Tìm cột Mã giao dịch
-            colId = headers.findIndex(h => h === 'mã giao dịch' || h.includes('mã gd') || h === 'id' || h.includes('mã'));
-            
-            if (colId !== -1) {
-                headerRowIndex = i;
-                colAm = headers.findIndex(h => h.includes('số tiền') || h.includes('tiền') || h.includes('amount'));
-                colNd = headers.findIndex(h => h.includes('nội dung') || h.includes('content'));
-                colSt = headers.findIndex(h => h.includes('trạng thái') || h.includes('status'));
-                colTm = headers.findIndex(h => h.includes('thời gian thanh toán') || h.includes('hoàn tất'));
-                break;
-            }
+          // Quét 10 dòng đầu tiên để tìm dòng chứa tiêu đề
+          for (let i = 0; i < Math.min(10, lines.length); i++) {
+              const headers = lines[i].split('\t').map(h => cleanString(h).toLowerCase());
+              colId = headers.findIndex(h => h === 'mã giao dịch' || h.includes('mã gd') || h === 'id');
+              
+              if (colId !== -1) {
+                  headerRowIndex = i;
+                  colAm = headers.findIndex(h => h.includes('số tiền') || h.includes('tiền') || h.includes('amount'));
+                  colNd = headers.findIndex(h => h.includes('nội dung') || h.includes('content'));
+                  colSt = headers.findIndex(h => h.includes('trạng thái') || h.includes('status'));
+                  colTm = headers.findIndex(h => h.includes('thời gian thanh toán') || h.includes('hoàn tất'));
+                  break;
+              }
           }
 
-          // Không tìm thấy tiêu đề
           if (headerRowIndex === -1) {
-              if(!isPolling && !urlParams.get('am')) {
-                  document.getElementById('error-msg').innerText = "Cấu trúc bảng không đúng!\nKhông tìm thấy cột 'Mã giao dịch' ở khu vực tiêu đề.";
-                  switchScreen('error');
-              }
+              if (!isPolling && !urlParams.get('am')) showError("Cấu trúc bảng không đúng! Không tìm thấy cột 'Mã giao dịch' (Cột A).");
               return;
           }
 
           let foundData = null;
-          // BỘ LỌC 3: Quét từ dưới lên trên để lấy thông tin mới nhất
+          // Quét từ dưới lên trên để lấy dòng cuối cùng có ID trùng khớp
           for (let i = lines.length - 1; i > headerRowIndex; i--) {
-            const cols = lines[i].split('\t');
-            if (cols.length <= colId) continue; // Bỏ qua dòng trống
-            
-            const rowId = cleanGoogleString(cols[colId]);
-            if (rowId === currentId) {
-                foundData = {
-                    id: rowId,
-                    amount: colAm !== -1 ? cleanGoogleString(cols[colAm]) : "",
-                    content: colNd !== -1 ? cleanGoogleString(cols[colNd]) : "",
-                    status: colSt !== -1 ? cleanGoogleString(cols[colSt]).toLowerCase() : "",
-                    paymentTime: colTm !== -1 ? cleanGoogleString(cols[colTm]) : ""
-                };
-                break;
-            }
+              const cols = lines[i].split('\t');
+              if (cols.length <= colId) continue;
+              
+              const rowId = cleanString(cols[colId]);
+              if (rowId === currentId) {
+                  foundData = {
+                      id: rowId,
+                      amount: colAm !== -1 ? cleanString(cols[colAm]) : "",
+                      content: colNd !== -1 ? cleanString(cols[colNd]) : "",
+                      status: colSt !== -1 ? cleanString(cols[colSt]).toLowerCase() : "",
+                      paymentTime: colTm !== -1 ? cleanString(cols[colTm]) : ""
+                  };
+                  break;
+              }
           }
 
           if (foundData) {
-            // Giữ ưu tiên param URL
-            if (urlParams.get('am')) foundData.amount = urlParams.get('am');
-            if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
+              if (urlParams.get('am')) foundData.amount = urlParams.get('am');
+              if (urlParams.get('nd')) foundData.content = urlParams.get('nd');
 
-            renderData(foundData);
+              renderData(foundData);
 
-            if (foundData.status.includes('đã thanh toán') || foundData.status.includes('thành công')) {
-                if(pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
-                if(isPolling) showToast("Thanh toán thành công!");
-            } else {
-                if(!isPolling) switchScreen('bill');
-                if(!pollingInterval) startPolling();
-            }
+              if (foundData.status.includes('đã thanh toán') || foundData.status.includes('thành công')) {
+                  if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+                  if (isPolling) showToast("Thanh toán thành công!");
+              } else {
+                  if (!isPolling) switchScreen('bill');
+                  if (!pollingInterval) startPolling();
+              }
           } else {
-             // Không tìm thấy ID trong Sheet
-             if (!isPolling && !urlParams.get('am')) {
-                document.getElementById('error-msg').innerText = "Giao dịch [" + currentId + "] không tồn tại trong hệ thống.";
-                switchScreen('error');
-             }
+              if (!isPolling && !urlParams.get('am')) showError("Mã giao dịch [" + currentId + "] không tồn tại trong hệ thống.");
           }
         })
         .catch(err => {
-            if(!isPolling && !urlParams.get('am')) {
-                document.getElementById('error-msg').innerText = "Lỗi kết nối máy chủ Google Sheet. Vui lòng thử lại.";
-                switchScreen('error');
-            }
+            if (!isPolling && !urlParams.get('am')) showError("Trình duyệt chặn kết nối hoặc mất mạng. Chi tiết lỗi: " + err.message);
         });
     }
 
@@ -362,7 +360,6 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
-      // Cập nhật thẻ Bill
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       
@@ -381,7 +378,7 @@
       }
     }
 
-    // Quét ngầm kiểm tra Sheet 1.5 giây / lần
+    // Quét ngầm 1.5 giây / lần
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
