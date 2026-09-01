@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Thanh toán tự động</title>
+  <title>Thanh toán online</title>
   
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://img.vietqr.io" crossorigin>
@@ -192,7 +192,7 @@
           <div class="status-icon success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
-          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Giao dịch thành công</h2>
+          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Thanh toán thành công</h2>
           
           <div class="result-box">
             <div class="row"><span class="label">Mã giao dịch</span><span class="value" id="bl-paid-id" style="font-family: monospace;">---</span></div>
@@ -225,21 +225,23 @@
 
   <script>
     // ==============================================================
-    // 🔧 CẤU HÌNH NGÂN HÀNG (SỬA DÒNG NÀY CHO TỪNG FILE)
+    // 🔧 CẤU HÌNH NGÂN HÀNG
     // ==============================================================
     const BANK_ID = 'mb';                      
     const BANK_NAME = 'MB Bank';               
     const ACCOUNT_NO = 'VQRQAJLBD8864';        
     const ACCOUNT_NAME = 'DINH VIET TRUONG';   
     
-    // API CHÍNH (SẠCH): Tuyệt đối không gắn thêm đuôi ?id= trên dòng này
-    const API_URL = "https://script.google.com/macros/s/AKfycbxLcE6Omn3QKXFi1SBB7A4CtsEjr-iB_qNQ5qrjy5AHagHsjTufNFA9MNqUTmq0ggle/exec";
+    // 🔗 CẤU HÌNH 2 ĐƯỜNG LINK LUÂN PHIÊN GET DỮ LIỆU
+    const API_URL_1 = "https://script.google.com/macros/s/AKfycbzAlGEH3r3yHIGW2HYcYZX2wxf5rTYqtrLhqOe6as9RHifV_BpscnB7PvWtDyxc5cl4ZQ/exec";
+    const API_URL_2 = "https://script.google.com/macros/s/AKfycbzOxkqvXRnuzC-Ek8AUlutoAm7jsSgAYG-lGi8g0kxoV4UZ7FSIf7lCePQw3334ltubqw/exec";
     // ==============================================================
 
     let currentId = "";
     let urlParams;
     let pollingInterval;
     let currentTxData = {};
+    let useUrl1 = true; // Cờ để đảo chiều URL mỗi giây
 
     function switchScreen(screenName) {
       document.getElementById('screen-loading').classList.remove('active');
@@ -260,56 +262,47 @@
       document.getElementById('cp-acc').innerText = ACCOUNT_NO;
       document.getElementById('cp-name').innerText = ACCOUNT_NAME;
 
-      // URL Web hiển thị (trên GitHub) có chứa đuôi id. Lấy đuôi id đó ra:
       urlParams = new URLSearchParams(window.location.search);
-      currentId = (urlParams.get('id') || "").trim();
-      const am = urlParams.get('am'); 
-      const nd = urlParams.get('nd'); 
+      // Sử dụng tham số ?net= thay vì ?id=
+      currentId = (urlParams.get('net') || "").trim();
       
       if (!currentId) {
         showError("Mã liên kết rỗng hoặc không tồn tại.");
         return;
       }
 
-      currentTxData = { id: currentId, amount: am || "0", content: nd || "---", status: "Chờ thanh toán" };
+      currentTxData = { id: currentId, amount: "0", content: "---", status: "Chờ thanh toán" };
 
       switchScreen('loading');
       fetchFirstData();
     };
 
     function fetchFirstData() {
-      // ĐÓNG GÓI JSON ĐỂ GỬI POST (Cấu trúc mới nhất)
-      const payload = {
-          "action": "exportJSON",
-          "id": currentId
-      };
-
-      fetch(API_URL, { 
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload),
-          cache: 'no-store' 
-      })
+      // Gọi URL 1 ở lần đầu tải trang
+      fetch(API_URL_1 + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
       .then(res => res.json())
       .then(result => {
-        if (result.success && result.data) {
+        if (result.success || result.status === "success") {
           let orderData = result.data;
-
-          // Mapping dữ liệu tiếng Việt không dấu chuẩn theo API
-          currentTxData.amount = orderData.soTien || currentTxData.amount;
-          currentTxData.content = orderData.noiDung || currentTxData.content;
-          currentTxData.status = orderData.trangThai || "Chờ thanh toán";
-          currentTxData.paymentTime = orderData.hoanTatLuc || "--:--";
           
-          renderData(currentTxData);
-          switchScreen('bill');
-          
-          const statusStr = currentTxData.status ? String(currentTxData.status).trim().toLowerCase() : '';
-          const isFinished = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công') || statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
-          
-          if (!isFinished) startPolling();
+          if(orderData) {
+            currentTxData.amount = orderData["Số tiền"] || currentTxData.amount;
+            currentTxData.content = orderData["Nội dung"] || currentTxData.content;
+            currentTxData.status = orderData["Trạng thái"] || "Chờ thanh toán";
+            currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
+            
+            renderData(currentTxData);
+            switchScreen('bill');
+            
+            const statusStr = currentTxData.status ? String(currentTxData.status).trim().toLowerCase() : '';
+            const isFinished = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công') || statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
+            
+            if (!isFinished) startPolling();
+          } else {
+             showError("Không tìm thấy mã đơn hàng này trên máy chủ.");
+          }
         } else {
-          showError("Không tìm thấy mã đơn hàng này trên máy chủ.");
+          showError("Lỗi dữ liệu từ máy chủ.");
         }
       })
       .catch(err => showError("Lỗi kết nối máy chủ. Vui lòng thử lại."));
@@ -362,44 +355,39 @@
       if(pollingInterval) clearInterval(pollingInterval);
       
       const checkData = function() {
-          // BẮN LỆNH POST THEO CHU KỲ 2 GIÂY/LẦN
-          if (pollingInterval) {
-              const payload = {
-                  "action": "exportJSON",
-                  "id": currentId
-              };
+          if (!pollingInterval) return;
 
-              fetch(API_URL, { 
-                  method: 'POST',
-                  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                  body: JSON.stringify(payload),
-                  cache: 'no-store' 
-              })
-                .then(res => res.json())
-                .then(result => {
-                  if (result.success && result.data && pollingInterval) {
-                      let orderData = result.data;
-                      const statusStr = String(orderData.trangThai || "").trim().toLowerCase();
+          // Luân phiên thay đổi URL để phân tải (Load Balancing)
+          const targetUrl = useUrl1 ? API_URL_1 : API_URL_2;
+          useUrl1 = !useUrl1;
+
+          fetch(targetUrl + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
+            .then(res => res.json())
+            .then(result => {
+              if (result.success || result.status === "success") {
+                  let orderData = result.data;
+                  if (orderData && pollingInterval) {
+                      const statusStr = String(orderData["Trạng thái"] || "").trim().toLowerCase();
                       const isPaid = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công'));
                       const isFailed = (statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
                       
                       if (isPaid || isFailed) {
                           clearInterval(pollingInterval); 
                           pollingInterval = null;
-                          currentTxData.status = orderData.trangThai;
-                          currentTxData.paymentTime = orderData.hoanTatLuc || "--:--";
+                          currentTxData.status = orderData["Trạng thái"];
+                          currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
                           renderData(currentTxData);
                           if (isPaid) showToast("Giao dịch thành công!");
                           if (isFailed) showToast("Giao dịch đã đóng!");
                       }
                   }
-                })
-                .catch(e => {});
-          }
+              }
+            })
+            .catch(e => {});
       };
 
-      // QUÉT ĐÚNG 2S/LẦN BẰNG POST THEO YÊU CẦU
-      pollingInterval = setInterval(checkData, 2000); 
+      // QUÉT ĐỀU ĐẶN 1S/LẦN BẰNG CÁCH LUÂN PHIÊN 2 URL
+      pollingInterval = setInterval(checkData, 1000); 
     }
 
     function downloadQR() {
