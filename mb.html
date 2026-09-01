@@ -58,7 +58,6 @@
     .copy-item { display: flex; justify-content: space-between; align-items: center; padding: clamp(8px, 1.5vh, 12px) 14px; background: var(--item-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; transition: all 0.2s; }
     .copy-item:active { transform: scale(0.98); background: rgba(255,255,255,0.05); border-color: var(--primary-glow); }
     .copy-info { display: flex; flex-direction: column; overflow: hidden; padding-right: 10px; width: 100%; }
-    
     .copy-lbl { font-size: 11.5px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.3px; margin-bottom: 3px; }
     .copy-val { font-size: 14px; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .copy-val.highlight { color: var(--primary); font-size: 16px; text-shadow: 0 0 8px var(--primary-glow); }
@@ -233,9 +232,8 @@
     const ACCOUNT_NO = 'VQRQAJLBD8864';        
     const ACCOUNT_NAME = 'DINH VIET TRUONG';   
     
-    // 1. Link 1: Lấy danh sách thông tin đơn hàng
-    const API_GET_BILL = "https://script.google.com/macros/s/AKfycbzOxkqvXRnuzC-Ek8AUlutoAm7jsSgAYG-lGi8g0kxoV4UZ7FSIf7lCePQw3334ltubqw/exec";
-
+    // API CHÍNH: Google Sheet Quản lý trạng thái (Chỉ dùng Link này)
+    const API_URL = "https://script.google.com/macros/s/AKfycbxLcE6Omn3QKXFi1SBB7A4CtsEjr-iB_qNQ5qrjy5AHagHsjTufNFA9MNqUTmq0ggle/exec";
     // ==============================================================
 
     let currentId = "";
@@ -279,37 +277,41 @@
     };
 
     function fetchFirstData() {
-      // 1. Kéo dữ liệu từ Link 1 bằng GET parameter id
-      fetch(API_GET_BILL + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
-        .then(res => res.json())
-        .then(result => {
-          let rawData = result.data || result;
-          let orderData = null;
+      // SỬ DỤNG POST JSON VỚI KEY: action: "exportJSON"
+      const payload = {
+          "action": "exportJSON",
+          "id": currentId
+      };
 
-          if (Array.isArray(rawData)) {
-             orderData = rawData.find(row => String(row["Mã giao dịch"]) === currentId);
-          } else {
-             orderData = rawData;
-          }
+      fetch(API_URL, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Vượt rào CORS Google Script
+          body: JSON.stringify(payload),
+          cache: 'no-store' 
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success && result.data) {
+          let orderData = result.data;
 
-          if (orderData) {
-            currentTxData.amount = orderData["Số tiền"] || currentTxData.amount;
-            currentTxData.content = orderData["Nội dung"] || currentTxData.content;
-            currentTxData.status = orderData["Trạng thái"] || "Chờ thanh toán";
-            currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
-            
-            renderData(currentTxData);
-            switchScreen('bill');
-            
-            const statusStr = currentTxData.status ? String(currentTxData.status).trim().toLowerCase() : '';
-            const isFinished = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công') || statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
-            
-            if (!isFinished) startPolling();
-          } else {
-            showError("Không tìm thấy mã đơn hàng này trên máy chủ.");
-          }
-        })
-        .catch(err => showError("Lỗi kết nối máy chủ. Vui lòng thử lại."));
+          // Mapping dữ liệu dựa trên Response mới của bạn
+          currentTxData.amount = orderData.soTien || currentTxData.amount;
+          currentTxData.content = orderData.noiDung || currentTxData.content;
+          currentTxData.status = orderData.trangThai || "Chờ thanh toán";
+          currentTxData.paymentTime = orderData.hoanTatLuc || "--:--";
+          
+          renderData(currentTxData);
+          switchScreen('bill');
+          
+          const statusStr = currentTxData.status ? String(currentTxData.status).trim().toLowerCase() : '';
+          const isFinished = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công') || statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
+          
+          if (!isFinished) startPolling();
+        } else {
+          showError("Không tìm thấy mã đơn hàng này trên máy chủ.");
+        }
+      })
+      .catch(err => showError("Lỗi kết nối máy chủ. Vui lòng thử lại."));
     }
 
     function renderData(data) {
@@ -355,24 +357,32 @@
       if(pollingInterval) clearInterval(pollingInterval);
       
       const checkData = function() {
-          // CHỈ QUÉT SHEET TỪ LINK 1 ĐỂ KIỂM TRA TRẠNG THÁI
+          // CHỈ QUÉT API CHÍNH BẰNG POST (2S/LẦN)
           if (pollingInterval) {
-              fetch(API_GET_BILL + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
+              const payload = {
+                  "action": "exportJSON",
+                  "id": currentId
+              };
+
+              fetch(API_URL, { 
+                  method: 'POST',
+                  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                  body: JSON.stringify(payload),
+                  cache: 'no-store' 
+              })
                 .then(res => res.json())
                 .then(result => {
-                  let rawData = result.data || result;
-                  let orderData = Array.isArray(rawData) ? rawData.find(row => String(row["Mã giao dịch"]) === currentId) : rawData;
-
-                  if (orderData && pollingInterval) {
-                      const statusStr = String(orderData["Trạng thái"] || "").trim().toLowerCase();
+                  if (result.success && result.data && pollingInterval) {
+                      let orderData = result.data;
+                      const statusStr = String(orderData.trangThai || "").trim().toLowerCase();
                       const isPaid = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công'));
                       const isFailed = (statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
                       
                       if (isPaid || isFailed) {
                           clearInterval(pollingInterval); 
                           pollingInterval = null;
-                          currentTxData.status = orderData["Trạng thái"];
-                          currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
+                          currentTxData.status = orderData.trangThai;
+                          currentTxData.paymentTime = orderData.hoanTatLuc || "--:--";
                           renderData(currentTxData);
                           if (isPaid) showToast("Giao dịch thành công!");
                           if (isFailed) showToast("Giao dịch đã đóng!");
@@ -383,7 +393,8 @@
           }
       };
 
-      pollingInterval = setInterval(checkData, 1600); 
+      // QUÉT ĐÚNG 2S/LẦN THEO YÊU CẦU
+      pollingInterval = setInterval(checkData, 2000); 
     }
 
     function downloadQR() {
