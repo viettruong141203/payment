@@ -193,7 +193,7 @@
           <div class="status-icon success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
-          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Thanh toán thành công</h2>
+          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Giao dịch thành công</h2>
           
           <div class="result-box">
             <div class="row"><span class="label">Mã giao dịch</span><span class="value" id="bl-paid-id" style="font-family: monospace;">---</span></div>
@@ -235,12 +235,7 @@
     
     // 1. Link 1: Lấy danh sách thông tin đơn hàng
     const API_GET_BILL = "https://script.google.com/macros/s/AKfycbzOxkqvXRnuzC-Ek8AUlutoAm7jsSgAYG-lGi8g0kxoV4UZ7FSIf7lCePQw3334ltubqw/exec";
-    
-    // 2. Link 2: Lịch sử chuyển khoản (Bank Feed)
-    const API_BANK_FEED = "https://script.google.com/macros/s/AKfycbyTwyaKpLIydE7u0sosrDOPVCj2VG0xCq1r2Hwda8U6sQ7s7AXNAEIjwNiBnr2zVrJ2/exec";
 
-    // 3. Link 3: Webhook để gửi POST (JSON) cập nhật trạng thái
-    const API_UPDATE_WEBHOOK = "https://script.google.com/macros/s/AKfycbyIKlSp4SuJPWsLd09rnvIMIdL8BKa9b2E2FRHVAmdWQ0t2a40M4GDzsFWCzT5He14u/exec";
     // ==============================================================
 
     let currentId = "";
@@ -360,53 +355,7 @@
       if(pollingInterval) clearInterval(pollingInterval);
       
       const checkData = function() {
-          // 2. Kéo lịch sử ngân hàng từ Link 2
-          fetch(API_BANK_FEED + "?t=" + new Date().getTime(), { cache: 'no-store' })
-            .then(res => res.json())
-            .then(result => {
-                let txs = Array.isArray(result) ? result : (result.data || [result]);
-                let expAm = String(currentTxData.amount).replace(/[^0-9]/g, '');
-                let expCt = String(currentTxData.content).trim().toLowerCase();
-                
-                if (!expAm || !expCt || expCt === "---") return; 
-
-                // So khớp Số tiền và Nội dung
-                let matchedTx = txs.find(tx => {
-                    if (!tx["Số tiền"] || !tx["Nội dung"]) return false;
-                    let txAm = String(tx["Số tiền"]).replace(/[^0-9]/g, '');
-                    let txCt = String(tx["Nội dung"]).toLowerCase();
-                    return (txAm === expAm && txCt.includes(expCt));
-                });
-
-                // NẾU TÌM THẤY:
-                if (matchedTx && pollingInterval) {
-                    clearInterval(pollingInterval); 
-                    pollingInterval = null;
-                    
-                    currentTxData.status = "Đã thanh toán";
-                    currentTxData.paymentTime = matchedTx["Thời gian"] || "Vừa xong";
-                    renderData(currentTxData);
-                    showToast("Giao dịch thành công!");
-
-                    // 3. Đóng gói JSON nguyên bản và bắn POST về Link 3
-                    let payload = {
-                       "action": "updateRecord",
-                       "id": currentId,
-                       "status": "Đã thanh toán",
-                       "paymentTime": matchedTx["Thời gian"]
-                    };
-                    
-                    fetch(API_UPDATE_WEBHOOK, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload),
-                        cache: 'no-store'
-                    }).catch(e => console.log("Post update error"));
-                }
-            })
-            .catch(e => {});
-
-          // Kiểm tra lại sheet (phòng bị hủy tay)
+          // CHỈ QUÉT SHEET TỪ LINK 1 ĐỂ KIỂM TRA TRẠNG THÁI
           if (pollingInterval) {
               fetch(API_GET_BILL + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
                 .then(res => res.json())
@@ -423,6 +372,7 @@
                           clearInterval(pollingInterval); 
                           pollingInterval = null;
                           currentTxData.status = orderData["Trạng thái"];
+                          currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
                           renderData(currentTxData);
                           if (isPaid) showToast("Giao dịch thành công!");
                           if (isFailed) showToast("Giao dịch đã đóng!");
