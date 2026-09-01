@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Thanh toán online</title>
+  <title>Thanh toán tự động</title>
   
   <link rel="preconnect" href="https://script.google.com" crossorigin>
   <link rel="preconnect" href="https://img.vietqr.io" crossorigin>
@@ -109,7 +109,7 @@
       <div class="loader-card">
         <div class="loader-core"><div class="loader-ring"></div><div class="loader-ring"></div><div class="loader-dot"></div></div>
         <p style="color: var(--primary); font-size: 16px; font-weight: 800; margin: 0 0 8px 0; letter-spacing: 1px; text-shadow: 0 0 8px var(--primary-glow);">Đang đồng bộ</p>
-        <p style="color: var(--text-muted); font-size: 13px; font-weight: 500; margin: 0;">Mã hóa dữ liệu bảo mật AI...</p>
+        <p style="color: var(--text-muted); font-size: 13px; font-weight: 500; margin: 0;">Đang khởi tạo kết nối an toàn...</p>
       </div>
     </div>
 
@@ -192,7 +192,7 @@
           <div class="status-icon success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
-          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Thanh toán thành công</h2>
+          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Giao dịch thành công</h2>
           
           <div class="result-box">
             <div class="row"><span class="label">Mã giao dịch</span><span class="value" id="bl-paid-id" style="font-family: monospace;">---</span></div>
@@ -232,7 +232,7 @@
     const ACCOUNT_NO = 'VQRQAJLBD8864';        
     const ACCOUNT_NAME = 'DINH VIET TRUONG';   
     
-    // 🔗 CẤU HÌNH 2 ĐƯỜNG LINK LUÂN PHIÊN GET DỮ LIỆU
+    // 🔗 2 ĐƯỜNG LINK LUÂN PHIÊN GET DỮ LIỆU ĐỂ GIẢM TẢI
     const API_URL_1 = "https://script.google.com/macros/s/AKfycbzAlGEH3r3yHIGW2HYcYZX2wxf5rTYqtrLhqOe6as9RHifV_BpscnB7PvWtDyxc5cl4ZQ/exec";
     const API_URL_2 = "https://script.google.com/macros/s/AKfycbzOxkqvXRnuzC-Ek8AUlutoAm7jsSgAYG-lGi8g0kxoV4UZ7FSIf7lCePQw3334ltubqw/exec";
     // ==============================================================
@@ -241,7 +241,7 @@
     let urlParams;
     let pollingInterval;
     let currentTxData = {};
-    let useUrl1 = true; // Cờ để đảo chiều URL mỗi giây
+    let useUrl1 = true;
 
     function switchScreen(screenName) {
       document.getElementById('screen-loading').classList.remove('active');
@@ -263,11 +263,11 @@
       document.getElementById('cp-name').innerText = ACCOUNT_NAME;
 
       urlParams = new URLSearchParams(window.location.search);
-      // Sử dụng tham số ?net= thay vì ?id=
+      // Dùng ?net=Mã giao dịch
       currentId = (urlParams.get('net') || "").trim();
       
       if (!currentId) {
-        showError("Mã liên kết rỗng hoặc không tồn tại.");
+        showError("Mã liên kết rỗng hoặc không hợp lệ.");
         return;
       }
 
@@ -277,15 +277,17 @@
       fetchFirstData();
     };
 
-    function fetchFirstData() {
-      // Gọi URL 1 ở lần đầu tải trang
-      fetch(API_URL_1 + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
+    // Hàm gọi dữ liệu lần đầu, có tính năng Fallback (Nếu URL 1 lỗi, thử URL 2)
+    function fetchFirstData(useFallback = false) {
+      const targetUrl = useFallback ? API_URL_2 : API_URL_1;
+      
+      fetch(targetUrl + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
       .then(res => res.json())
       .then(result => {
         if (result.success || result.status === "success") {
-          let orderData = result.data;
+          let orderData = Array.isArray(result.data) ? result.data[0] : result.data;
           
-          if(orderData) {
+          if(orderData && orderData["Mã giao dịch"]) {
             currentTxData.amount = orderData["Số tiền"] || currentTxData.amount;
             currentTxData.content = orderData["Nội dung"] || currentTxData.content;
             currentTxData.status = orderData["Trạng thái"] || "Chờ thanh toán";
@@ -299,13 +301,19 @@
             
             if (!isFinished) startPolling();
           } else {
-             showError("Không tìm thấy mã đơn hàng này trên máy chủ.");
+             showError("Không tìm thấy mã đơn hàng này trên hệ thống.");
           }
         } else {
-          showError("Lỗi dữ liệu từ máy chủ.");
+          // Bắt lỗi nếu server trả về status lỗi, thử phương án dự phòng
+          if(!useFallback) fetchFirstData(true);
+          else showError("Lỗi đồng bộ dữ liệu từ máy chủ.");
         }
       })
-      .catch(err => showError("Lỗi kết nối máy chủ. Vui lòng thử lại."));
+      .catch(err => {
+          // Bắt lỗi kết nối mạng, thử phương án dự phòng
+          if(!useFallback) fetchFirstData(true);
+          else showError("Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng.");
+      });
     }
 
     function renderData(data) {
@@ -357,7 +365,7 @@
       const checkData = function() {
           if (!pollingInterval) return;
 
-          // Luân phiên thay đổi URL để phân tải (Load Balancing)
+          // Cập nhật: Luân phiên 2 URL mỗi lần quét để giảm tải
           const targetUrl = useUrl1 ? API_URL_1 : API_URL_2;
           useUrl1 = !useUrl1;
 
@@ -365,7 +373,7 @@
             .then(res => res.json())
             .then(result => {
               if (result.success || result.status === "success") {
-                  let orderData = result.data;
+                  let orderData = Array.isArray(result.data) ? result.data[0] : result.data;
                   if (orderData && pollingInterval) {
                       const statusStr = String(orderData["Trạng thái"] || "").trim().toLowerCase();
                       const isPaid = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công'));
@@ -386,8 +394,8 @@
             .catch(e => {});
       };
 
-      // QUÉT ĐỀU ĐẶN 1S/LẦN BẰNG CÁCH LUÂN PHIÊN 2 URL
-      pollingInterval = setInterval(checkData, 1000); 
+      // Cập nhật: Tốc độ quét rút ngắn lại thành 1.5s/lần
+      pollingInterval = setInterval(checkData, 1500); 
     }
 
     function downloadQR() {
