@@ -58,6 +58,7 @@
     .copy-item { display: flex; justify-content: space-between; align-items: center; padding: clamp(8px, 1.5vh, 12px) 14px; background: var(--item-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; transition: all 0.2s; }
     .copy-item:active { transform: scale(0.98); background: rgba(255,255,255,0.05); border-color: var(--primary-glow); }
     .copy-info { display: flex; flex-direction: column; overflow: hidden; padding-right: 10px; width: 100%; }
+    
     .copy-lbl { font-size: 11.5px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.3px; margin-bottom: 3px; }
     .copy-val { font-size: 14px; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .copy-val.highlight { color: var(--primary); font-size: 16px; text-shadow: 0 0 8px var(--primary-glow); }
@@ -192,7 +193,7 @@
           <div class="status-icon success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
-          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Giao dịch thành công</h2>
+          <h2 style="margin: 0 0 20px; color: var(--success); font-size: clamp(18px, 4vw, 22px); font-weight: 800; text-shadow: 0 0 10px rgba(0,230,118,0.5);">Thanh toán thành công</h2>
           
           <div class="result-box">
             <div class="row"><span class="label">Mã giao dịch</span><span class="value" id="bl-paid-id" style="font-family: monospace;">---</span></div>
@@ -359,7 +360,7 @@
       if(pollingInterval) clearInterval(pollingInterval);
       
       const checkData = function() {
-          // LUỒNG 1: QUÉT TRỰC TIẾP LỊCH SỬ NGÂN HÀNG (URL 2)
+          // 2. Kéo lịch sử ngân hàng từ Link 2
           fetch(API_BANK_FEED + "?t=" + new Date().getTime(), { cache: 'no-store' })
             .then(res => res.json())
             .then(result => {
@@ -387,7 +388,7 @@
                     renderData(currentTxData);
                     showToast("Giao dịch thành công!");
 
-                    // 3. Đóng gói JSON và bắn POST về Link 3
+                    // 3. Đóng gói JSON nguyên bản và bắn POST về Link 3
                     let payload = {
                        "action": "updateRecord",
                        "id": currentId,
@@ -395,9 +396,7 @@
                        "paymentTime": matchedTx["Thời gian"]
                     };
                     
-                    let targetWebhookUrl = API_UPDATE_WEBHOOK + "?id=" + encodeURIComponent(currentId);
-                    
-                    fetch(targetWebhookUrl, {
+                    fetch(API_UPDATE_WEBHOOK, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload),
@@ -407,7 +406,7 @@
             })
             .catch(e => {});
 
-          // LUỒNG 2: KIỂM TRA LẠI SHEET (Phòng trường hợp admin hủy đơn - URL 1)
+          // Kiểm tra lại sheet (phòng bị hủy tay)
           if (pollingInterval) {
               fetch(API_GET_BILL + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
                 .then(res => res.json())
@@ -434,8 +433,7 @@
           }
       };
 
-      // Tần suất gửi yêu cầu quét được đặt thành 3 giây
-      pollingInterval = setInterval(checkData, 3000); 
+      pollingInterval = setInterval(checkData, 1600); 
     }
 
     function downloadQR() {
