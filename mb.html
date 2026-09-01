@@ -152,7 +152,7 @@
                 <span class="copy-lbl">Số tài khoản</span>
                 <span class="copy-val" id="cp-acc">---</span>
               </div>
-              <button class="btn-copy-icon" onclick="copyText('cp-acc')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg></button>
+              <button class="btn-copy-icon" onclick="copyText('cp-acc')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
             </div>
             <div class="copy-item">
               <div class="copy-info">
@@ -395,16 +395,14 @@
                     renderData(currentTxData);
                     showToast("Giao dịch thành công!");
 
-                    // GỬI POST BÁO VỀ WEBHOOK KÈM ĐUÔI ID VÀ JSON YÊU CẦU (URL 3)
+                    // GỬI CHÍNH XÁC THÔNG TIN CHUYỂN KHOẢN VỀ LINK 3
                     let payload = {
-                       "Thời gian": matchedTx["Thời gian"],
-                       "Số tiền": matchedTx["Số tiền"],
-                       "Nội dung": matchedTx["Nội dung"]
+                        "Thời gian": matchedTx["Thời gian"],
+                        "Số tiền": matchedTx["Số tiền"],
+                        "Nội dung": matchedTx["Nội dung"]
                     };
                     
-                    let targetWebhookUrl = API_UPDATE_WEBHOOK + "?id=" + encodeURIComponent(currentId);
-                    
-                    fetch(targetWebhookUrl, {
+                    fetch(API_UPDATE_WEBHOOK, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload),
