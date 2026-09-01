@@ -40,11 +40,9 @@
     .qr-box { text-align: center; background: #ffffff; padding: 10px; border-radius: 16px; margin: 0 auto 12px; display: inline-block; width: fit-content; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
     .qr-box img { width: clamp(130px, 40vw, 160px); height: auto; aspect-ratio: 1/1; border-radius: 10px; display: block; }
     
-    /* Nút lưu mã QR thon gọn */
     .btn-save-qr { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: #fff; border: none; border-radius: 20px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: inherit; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25); margin-bottom: 12px; }
     .btn-save-qr:active { transform: scale(0.95); background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
 
-    /* Các dòng thông tin thu gọn */
     .copy-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(0, 0, 0, 0.02); border: 1px solid rgba(0, 0, 0, 0.03); border-radius: 10px; margin-bottom: 6px; transition: all 0.2s; }
     .copy-item:active { background: rgba(0, 0, 0, 0.05); }
     .copy-item:last-child { margin-bottom: 0; }
@@ -57,7 +55,6 @@
     .btn-copy { background: rgba(2, 132, 199, 0.1); color: var(--accent-blue); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
     .btn-copy:active { transform: scale(0.92); }
 
-    /* Khối Lưu ý thu gọn */
     .note-box { background: rgba(147, 51, 234, 0.05); border: 1px dashed rgba(147, 51, 234, 0.3); border-radius: 14px; padding: 12px; margin-top: 12px; text-align: left; }
     .note-title { font-size: 13px; font-weight: 800; color: #9333ea; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
     .note-list { list-style: none; padding: 0; margin: 0; font-size: 11px; color: #475569; line-height: 1.5; }
@@ -95,7 +92,6 @@
     </div>
 
     <div id="screen-bill" class="screen">
-      
       <!-- GIAO DIỆN CHƯA THANH TOÁN -->
       <div id="bill-unpaid" style="display: flex; flex-direction: column; min-height: 100%;">
         <div class="header-title" id="app-title-bill">ID: ---</div>
@@ -105,7 +101,6 @@
             <div class="qr-box">
               <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
             </div>
-            <!-- Nút Lưu QR thiết kế dạng Pill ôm gọn -->
             <div>
               <button class="btn-save-qr" onclick="downloadQR()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -180,16 +175,16 @@
   </div>
 
   <script>
-    // URL API GOOGLE SCRIPT
-    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
+    // ==========================================
+    // CẬP NHẬT ĐƯỜNG LINK API MỚI VÀ PHƯƠNG THỨC POST JSON
+    // ==========================================
+    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIKlSp4SuJPWsLd09rnvIMIdL8BKa9b2E2FRHVAmdWQ0t2a40M4GDzsFWCzT5He14u/exec";
     
-    // THÔNG TIN NGÂN HÀNG CỐ ĐỊNH
     const BANK_ID = 'vietcombank';
     const ACCOUNT_NO = 'TGE60603130946VCB';       
     const ACCOUNT_NAME = 'DINH VIET TRUONG';      
 
     let currentId = "";
-    let currentData = null; 
     let pollingInterval;
 
     window.onload = function() {
@@ -205,22 +200,37 @@
       fetchData();
     };
 
+    // Hàm gọi API mới với phương thức POST + JSON
     function fetchData() {
-      fetch(GOOGLE_API_URL + "?id=" + currentId)
-        .then(res => res.json())
-        .then(result => {
-          if (result.success) {
-            renderData(result.data);
-            switchScreen('bill');
-          } else {
-            document.getElementById('error-msg').innerText = result.message;
-            switchScreen('error');
-          }
-        })
-        .catch(err => {
-          document.getElementById('error-msg').innerText = "Lỗi kết nối máy chủ dữ liệu. Vui lòng thử lại.";
+      const payload = {
+        action: "exportJSON",
+        id: currentId
+      };
+
+      fetch(GOOGLE_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8" // Tránh lỗi bảo mật CORS
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(result => {
+        // Hỗ trợ trường hợp API mới trả về trực tiếp data hoặc bọc trong thuộc tính success/data
+        let finalData = result.data ? result.data : result;
+        
+        if (finalData && finalData.id) {
+          renderData(finalData);
+          switchScreen('bill');
+        } else {
+          document.getElementById('error-msg').innerText = result.message || "Không tìm thấy thông tin giao dịch.";
           switchScreen('error');
-        });
+        }
+      })
+      .catch(err => {
+        document.getElementById('error-msg').innerText = "Lỗi kết nối máy chủ dữ liệu. Vui lòng thử lại.";
+        switchScreen('error');
+      });
     }
 
     function switchScreen(screenName) {
@@ -231,7 +241,6 @@
     }
 
     function renderData(data) {
-      currentData = data; 
       var statusStr = data.status ? String(data.status).trim().toLowerCase() : '';
       var isPaid = (statusStr === 'đã thanh toán' || statusStr === 'thành công');
 
@@ -264,19 +273,34 @@
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
-        fetch(GOOGLE_API_URL + "?action=checkStatus&id=" + currentId)
-          .then(res => res.json())
-          .then(result => {
-            if (result.success && (String(result.data.status).toLowerCase() === 'đã thanh toán' || String(result.data.status).toLowerCase() === 'thành công')) {
-              renderData(result.data);
+        
+        const payload = {
+          action: "exportJSON", // Quét ngầm với cùng định dạng JSON
+          id: currentId
+        };
+
+        fetch(GOOGLE_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(result => {
+          let finalData = result.data ? result.data : result;
+          if (finalData && finalData.id) {
+            var checkStatus = String(finalData.status).toLowerCase();
+            if (checkStatus === 'đã thanh toán' || checkStatus === 'thành công') {
+              renderData(finalData);
               showToast("Thanh toán thành công!");
             }
-          })
-          .catch(e => console.log("Lỗi ngầm"));
+          }
+        })
+        .catch(e => console.log("Lỗi ngầm"));
       }, 2000); 
     }
 
-    /* TÍNH NĂNG LƯU MÃ QR BẰNG CANVAS */
     function downloadQR() {
       showToast("Đang tạo ảnh...");
       const qrUrl = document.getElementById('qr-img').src;
