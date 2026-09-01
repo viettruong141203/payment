@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <title>Tạo Đơn Hàng Nhanh</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --secondary: #ec4899;
+      --bg-glass: rgba(255, 255, 255, 0.85);
+      --border-glass: rgba(255, 255, 255, 0.5);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+    }
+
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    
+    body {
+      margin: 0; padding: 20px;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background-color: #f8fafc;
+      /* Hiệu ứng nền Aurora mờ ảo */
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.2) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.2) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .form-container {
+      width: 100%; max-width: 420px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-glass);
+      border-radius: 24px;
+      padding: 32px 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h2 { margin: 0; color: var(--text-main); font-size: 24px; font-weight: 800; }
+    .header p { margin: 8px 0 0 0; color: var(--text-muted); font-size: 14px; font-weight: 500; }
+
+    .input-wrapper {
+      position: relative;
+      background: rgba(255,255,255,0.6);
+      border: 2px solid rgba(0,0,0,0.05);
+      border-radius: 20px;
+      padding: 10px;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+    }
+    .input-wrapper:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+      background: #fff;
+    }
+
+    .input-wrapper input {
+      width: 100%; border: none; background: transparent; outline: none;
+      font-size: 36px; font-weight: 800; text-align: center; color: var(--text-main);
+      font-family: monospace; letter-spacing: -1px;
+    }
+    .input-wrapper input::placeholder { color: #cbd5e1; }
+    
+    .currency-symbol {
+      position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; font-weight: 700; color: var(--text-muted);
+    }
+
+    .quick-amounts {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 30px;
+    }
+    .btn-quick {
+      background: rgba(255,255,255,0.5); border: 1px solid var(--border-glass);
+      color: var(--text-main); font-weight: 600; font-size: 14px;
+      padding: 10px 16px; border-radius: 12px; cursor: pointer; transition: 0.2s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .btn-quick:hover { background: #fff; transform: translateY(-2px); }
+    .btn-quick:active { transform: scale(0.95); }
+
+    .btn-submit {
+      width: 100%; border: none; outline: none;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white; font-size: 16px; font-weight: 800;
+      padding: 18px; border-radius: 16px; cursor: pointer;
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.25);
+      transition: all 0.3s; position: relative;
+    }
+    .btn-submit:hover { box-shadow: 0 15px 35px rgba(236, 72, 153, 0.35); transform: translateY(-2px); }
+    .btn-submit:active { transform: scale(0.97); }
+    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    /* Hộp thông báo kết quả */
+    .result-box {
+      margin-top: 20px; padding: 16px; border-radius: 16px;
+      text-align: center; font-size: 15px; font-weight: 600;
+      display: none; animation: slideUp 0.3s ease;
+    }
+    .result-success { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .result-error { background: #fef2f2; color: #e11d48; border: 1px solid #fecaca; }
+    
+    .id-badge {
+      display: inline-block; background: #059669; color: white;
+      padding: 4px 10px; border-radius: 8px; margin-top: 8px; font-family: monospace; letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-container">
+    <div class="header">
+      <h2>Tạo Đơn Hàng</h2>
+      <p>Nhập số tiền cần thanh toán</p>
+    </div>
+
+    <div class="input-wrapper">
+      <input type="text" id="amountInput" placeholder="0" inputmode="numeric" oninput="formatCurrency(this)">
+      <span class="currency-symbol">VNĐ</span>
+    </div>
+
+    <div class="quick-amounts">
+      <button class="btn-quick" onclick="addAmount(50000)">+50K</button>
+      <button class="btn-quick" onclick="addAmount(100000)">+100K</button>
+      <button class="btn-quick" onclick="addAmount(200000)">+200K</button>
+      <button class="btn-quick" onclick="addAmount(500000)">+500K</button>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="sendData()">
+      <span>XÁC NHẬN TẠO</span>
+    </button>
+
+    <div id="resultBox" class="result-box"></div>
+  </div>
+
+  <script>
+    // ĐÃ GẮN SẴN LINK API CỦA BẠN
+    const API_URL = "https://script.google.com/macros/s/AKfycbyIKlSp4SuJPWsLd09rnvIMIdL8BKa9b2E2FRHVAmdWQ0t2a40M4GDzsFWCzT5He14u/exec";
+
+    const amountInput = document.getElementById('amountInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultBox = document.getElementById('resultBox');
+
+    // Hàm tự động thêm dấu chấm khi gõ số (VD: 50000 -> 50.000)
+    function formatCurrency(input) {
+      let value = input.value.replace(/[^0-9]/g, '');
+      if (value !== '') {
+        value = parseInt(value, 10).toLocaleString('vi-VN');
+      }
+      input.value = value;
+    }
+
+    // Hàm cộng nhanh số tiền từ các nút bấm
+    function addAmount(amount) {
+      let currentVal = amountInput.value.replace(/[^0-9]/g, '');
+      let newTotal = (parseInt(currentVal, 10) || 0) + amount;
+      amountInput.value = newTotal.toLocaleString('vi-VN');
+    }
+
+    // Hàm xử lý gửi dữ liệu
+    function sendData() {
+      // 1. Lấy số tiền thực tế (bỏ dấu chấm)
+      const rawAmount = parseInt(amountInput.value.replace(/[^0-9]/g, ''), 10);
+
+      // 2. Kiểm tra lỗi
+      if (!rawAmount || rawAmount < 2000) {
+        showResult("Số tiền tối thiểu là 2.000 VNĐ", false);
+        return;
+      }
+
+      // 3. Khóa giao diện và báo đang gửi
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = "Đang xử lý...";
+      resultBox.style.display = "none";
+
+      // 4. Tạo gói JSON
+      const payload = {
+        action: "addRecord",
+        amount: rawAmount
+      };
+
+      // 5. Bắn lên API
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+        redirect: "follow"
+      })
+      .then(response => response.json())
+      .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = "XÁC NHẬN TẠO";
+
+        if (data.success) {
+          showResult(`Tạo đơn thành công!<br><span class="id-badge">#${data.data.id}</span>`, true);
+          amountInput.value = ""; // Xóa trắng ô nhập
+        } else {
+          showResult("Lỗi tạo đơn: " + data.message, false);
+        }
+      })
+      .catch(error => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = "XÁC NHẬN TẠO";
+        showResult("Lỗi kết nối mạng! Vui lòng thử lại.", false);
+      });
+    }
+
+    // Hàm hiển thị thông báo
+    function showResult(message, isSuccess) {
+      resultBox.innerHTML = message;
+      resultBox.className = "result-box " + (isSuccess ? "result-success" : "result-error");
+      resultBox.style.display = "block";
+    }
+  </script>
+</body>
+</html>
