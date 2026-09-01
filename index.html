@@ -92,6 +92,7 @@
     </div>
 
     <div id="screen-bill" class="screen">
+      
       <!-- GIAO DIỆN CHƯA THANH TOÁN -->
       <div id="bill-unpaid" style="display: flex; flex-direction: column; min-height: 100%;">
         <div class="header-title" id="app-title-bill">ID: ---</div>
@@ -101,6 +102,7 @@
             <div class="qr-box">
               <img id="qr-img" src="" alt="Mã QR" crossorigin="anonymous">
             </div>
+            
             <div>
               <button class="btn-save-qr" onclick="downloadQR()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -175,11 +177,10 @@
   </div>
 
   <script>
-    // ==========================================
-    // CẬP NHẬT ĐƯỜNG LINK API MỚI VÀ PHƯƠNG THỨC POST JSON
-    // ==========================================
+    // URL API MỚI NHẤT
     const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIKlSp4SuJPWsLd09rnvIMIdL8BKa9b2E2FRHVAmdWQ0t2a40M4GDzsFWCzT5He14u/exec";
     
+    // THÔNG TIN NGÂN HÀNG
     const BANK_ID = 'vietcombank';
     const ACCOUNT_NO = 'TGE60603130946VCB';       
     const ACCOUNT_NAME = 'DINH VIET TRUONG';      
@@ -200,37 +201,23 @@
       fetchData();
     };
 
-    // Hàm gọi API mới với phương thức POST + JSON
     function fetchData() {
-      const payload = {
-        action: "exportJSON",
-        id: currentId
-      };
-
-      fetch(GOOGLE_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8" // Tránh lỗi bảo mật CORS
-        },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(result => {
-        // Hỗ trợ trường hợp API mới trả về trực tiếp data hoặc bọc trong thuộc tính success/data
-        let finalData = result.data ? result.data : result;
-        
-        if (finalData && finalData.id) {
-          renderData(finalData);
-          switchScreen('bill');
-        } else {
-          document.getElementById('error-msg').innerText = result.message || "Không tìm thấy thông tin giao dịch.";
+      // Đã cập nhật ?action=exportJSON theo thiết kế API mới
+      fetch(GOOGLE_API_URL + "?action=exportJSON&id=" + currentId)
+        .then(res => res.json())
+        .then(result => {
+          if (result.success) {
+            renderData(result.data);
+            switchScreen('bill');
+          } else {
+            document.getElementById('error-msg').innerText = "Không tìm thấy giao dịch.";
+            switchScreen('error');
+          }
+        })
+        .catch(err => {
+          document.getElementById('error-msg').innerText = "Lỗi kết nối máy chủ. Vui lòng thử lại.";
           switchScreen('error');
-        }
-      })
-      .catch(err => {
-        document.getElementById('error-msg').innerText = "Lỗi kết nối máy chủ dữ liệu. Vui lòng thử lại.";
-        switchScreen('error');
-      });
+        });
     }
 
     function switchScreen(screenName) {
@@ -241,22 +228,23 @@
     }
 
     function renderData(data) {
-      var statusStr = data.status ? String(data.status).trim().toLowerCase() : '';
+      // Đã thay đổi cách đọc Key theo chuẩn API mới: maGiaoDich, soTien, noiDung, trangThai, hoanTatLuc
+      var statusStr = data.trangThai ? String(data.trangThai).trim().toLowerCase() : '';
       var isPaid = (statusStr === 'đã thanh toán' || statusStr === 'thành công');
 
-      let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
+      let rawAmount = String(data.soTien).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ";
 
-      // ĐIỀN BILL CHƯA THANH TOÁN
-      document.getElementById('app-title-bill').innerText = "MÃ GD: " + data.id;
+      // ĐIỀN CHƯA THANH TOÁN
+      document.getElementById('app-title-bill').innerText = "MÃ GD: " + data.maGiaoDich;
       document.getElementById('cp-amount').innerText = displayAmount;
-      document.getElementById('cp-content').innerText = data.content;
+      document.getElementById('cp-content').innerText = data.noiDung;
       
-      document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
+      document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.noiDung || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
-      // ĐIỀN THÔNG TIN ĐÃ THANH TOÁN
-      document.getElementById('bl-paid-id').innerText = data.id;
-      document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
+      // ĐIỀN ĐÃ THANH TOÁN
+      document.getElementById('bl-paid-id').innerText = data.maGiaoDich;
+      document.getElementById('bl-paid-time').innerText = data.hoanTatLuc || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
 
       if (isPaid) {
@@ -273,34 +261,20 @@
     function startPolling() {
       if(pollingInterval) clearInterval(pollingInterval);
       pollingInterval = setInterval(function() {
-        
-        const payload = {
-          action: "exportJSON", // Quét ngầm với cùng định dạng JSON
-          id: currentId
-        };
-
-        fetch(GOOGLE_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
-          body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(result => {
-          let finalData = result.data ? result.data : result;
-          if (finalData && finalData.id) {
-            var checkStatus = String(finalData.status).toLowerCase();
-            if (checkStatus === 'đã thanh toán' || checkStatus === 'thành công') {
-              renderData(finalData);
+        // Quét ngầm với format API mới
+        fetch(GOOGLE_API_URL + "?action=exportJSON&id=" + currentId)
+          .then(res => res.json())
+          .then(result => {
+            if (result.success && result.data && (String(result.data.trangThai).toLowerCase() === 'đã thanh toán' || String(result.data.trangThai).toLowerCase() === 'thành công')) {
+              renderData(result.data);
               showToast("Thanh toán thành công!");
             }
-          }
-        })
-        .catch(e => console.log("Lỗi ngầm"));
+          })
+          .catch(e => console.log("Lỗi ngầm"));
       }, 2000); 
     }
 
+    /* LƯU ẢNH MÃ QR CÓ THÔNG TIN */
     function downloadQR() {
       showToast("Đang tạo ảnh...");
       const qrUrl = document.getElementById('qr-img').src;
