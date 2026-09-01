@@ -225,20 +225,20 @@
 
   <script>
     // ==============================================================
-    // 🔧 CẤU HÌNH NGÂN HÀNG (SỬA DÒNG NÀY CHO TỪNG FILE)
+    // 🔧 CẤU HÌNH API VÀ NGÂN HÀNG
     // ==============================================================
     const BANK_ID = 'mb';                      
     const BANK_NAME = 'MB Bank';               
     const ACCOUNT_NO = 'VQRQAJLBD8864';        
     const ACCOUNT_NAME = 'DINH VIET TRUONG';   
     
-    // LINK 1: Lấy danh sách/thông tin đơn hàng
+    // 1. Link 1: Lấy danh sách thông tin đơn hàng
     const API_GET_BILL = "https://script.google.com/macros/s/AKfycbzOxkqvXRnuzC-Ek8AUlutoAm7jsSgAYG-lGi8g0kxoV4UZ7FSIf7lCePQw3334ltubqw/exec";
     
-    // LINK 2: Bank Feed siêu tốc để đối chiếu giao dịch
+    // 2. Link 2: Lịch sử chuyển khoản (Bank Feed)
     const API_BANK_FEED = "https://script.google.com/macros/s/AKfycbyTwyaKpLIydE7u0sosrDOPVCj2VG0xCq1r2Hwda8U6sQ7s7AXNAEIjwNiBnr2zVrJ2/exec";
-    
-    // LINK 3: Bắn JSON kết quả báo thành công
+
+    // 3. Link 3: Webhook để gửi POST (JSON) cập nhật trạng thái
     const API_UPDATE_WEBHOOK = "https://script.google.com/macros/s/AKfycbyIKlSp4SuJPWsLd09rnvIMIdL8BKa9b2E2FRHVAmdWQ0t2a40M4GDzsFWCzT5He14u/exec";
     // ==============================================================
 
@@ -268,27 +268,28 @@
 
       urlParams = new URLSearchParams(window.location.search);
       currentId = (urlParams.get('id') || "").trim();
+      const am = urlParams.get('am'); 
+      const nd = urlParams.get('nd'); 
       
       if (!currentId) {
         showError("Mã liên kết rỗng hoặc không tồn tại.");
         return;
       }
 
-      currentTxData = { id: currentId, amount: "0", content: "---", status: "Chờ thanh toán" };
-      
+      currentTxData = { id: currentId, amount: am || "0", content: nd || "---", status: "Chờ thanh toán" };
+
       switchScreen('loading');
       fetchFirstData();
     };
 
     function fetchFirstData() {
-      // 1. Gọi Link 1 kèm đuôi ?id= để lấy thông tin bill này
+      // 1. Kéo dữ liệu từ Link 1 bằng GET parameter id
       fetch(API_GET_BILL + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
         .then(res => res.json())
         .then(result => {
           let rawData = result.data || result;
           let orderData = null;
 
-          // Xử lý linh hoạt JSON trả về mảng hoặc object
           if (Array.isArray(rawData)) {
              orderData = rawData.find(row => String(row["Mã giao dịch"]) === currentId);
           } else {
@@ -296,8 +297,8 @@
           }
 
           if (orderData) {
-            currentTxData.amount = orderData["Số tiền"] || "0";
-            currentTxData.content = orderData["Nội dung"] || "---";
+            currentTxData.amount = orderData["Số tiền"] || currentTxData.amount;
+            currentTxData.content = orderData["Nội dung"] || currentTxData.content;
             currentTxData.status = orderData["Trạng thái"] || "Chờ thanh toán";
             currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
             
@@ -307,13 +308,12 @@
             const statusStr = currentTxData.status ? String(currentTxData.status).trim().toLowerCase() : '';
             const isFinished = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công') || statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
             
-            // Nếu chưa thanh toán -> Mở vòng lặp quét Bank Feed (Link 2)
             if (!isFinished) startPolling();
           } else {
-            showError("Không tìm thấy mã đơn hàng này trên hệ thống.");
+            showError("Không tìm thấy mã đơn hàng này trên máy chủ.");
           }
         })
-        .catch(err => showError("Lỗi kết nối dữ liệu. Vui lòng thử lại."));
+        .catch(err => showError("Lỗi kết nối máy chủ. Vui lòng thử lại."));
     }
 
     function renderData(data) {
@@ -326,18 +326,15 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount && rawAmount !== "0" ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
-      // Khối Chờ Thanh Toán
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
-      // Khối Đã Thanh Toán
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
       document.getElementById('bl-paid-status').innerText = rawStatus || 'Đã thanh toán';
 
-      // Khối Thất Bại
       document.getElementById('bl-failed-id').innerText = data.id;
       document.getElementById('bl-failed-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-failed-amount').innerText = displayAmount;
@@ -362,16 +359,17 @@
       if(pollingInterval) clearInterval(pollingInterval);
       
       const checkData = function() {
-          // 2. GỌI LINK 2 LIÊN TỤC ĐỂ QUÉT BANK FEED
+          // LUỒNG 1: QUÉT TRỰC TIẾP LỊCH SỬ NGÂN HÀNG (URL 2)
           fetch(API_BANK_FEED + "?t=" + new Date().getTime(), { cache: 'no-store' })
             .then(res => res.json())
             .then(result => {
                 let txs = Array.isArray(result) ? result : (result.data || [result]);
                 let expAm = String(currentTxData.amount).replace(/[^0-9]/g, '');
                 let expCt = String(currentTxData.content).trim().toLowerCase();
+                
                 if (!expAm || !expCt || expCt === "---") return; 
 
-                // Tìm giao dịch khớp Số tiền và Nội dung
+                // So khớp Số tiền và Nội dung
                 let matchedTx = txs.find(tx => {
                     if (!tx["Số tiền"] || !tx["Nội dung"]) return false;
                     let txAm = String(tx["Số tiền"]).replace(/[^0-9]/g, '');
@@ -379,26 +377,27 @@
                     return (txAm === expAm && txCt.includes(expCt));
                 });
 
-                // NẾU TÌM THẤY GIAO DỊCH KHỚP!
+                // NẾU TÌM THẤY:
                 if (matchedTx && pollingInterval) {
                     clearInterval(pollingInterval); 
                     pollingInterval = null;
                     
-                    // Cập nhật giao diện lập tức thành công
                     currentTxData.status = "Đã thanh toán";
                     currentTxData.paymentTime = matchedTx["Thời gian"] || "Vừa xong";
                     renderData(currentTxData);
                     showToast("Giao dịch thành công!");
 
-                    // 3. GỬI JSON LÊN LINK 3 THEO ĐÚNG MẪU YÊU CẦU
+                    // 3. Đóng gói JSON và bắn POST về Link 3
                     let payload = {
-                        "action": "updateRecord",
-                        "id": currentId,
-                        "status": "Đã thanh toán",
-                        "paymentTime": matchedTx["Thời gian"]
+                       "action": "updateRecord",
+                       "id": currentId,
+                       "status": "Đã thanh toán",
+                       "paymentTime": matchedTx["Thời gian"]
                     };
-
-                    fetch(API_UPDATE_WEBHOOK, {
+                    
+                    let targetWebhookUrl = API_UPDATE_WEBHOOK + "?id=" + encodeURIComponent(currentId);
+                    
+                    fetch(targetWebhookUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload),
@@ -408,7 +407,7 @@
             })
             .catch(e => {});
 
-          // (Tính năng dự phòng): Vẫn check Link 1 đề phòng trường hợp admin đổi trạng thái thành Hủy/Lỗi
+          // LUỒNG 2: KIỂM TRA LẠI SHEET (Phòng trường hợp admin hủy đơn - URL 1)
           if (pollingInterval) {
               fetch(API_GET_BILL + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
                 .then(res => res.json())
@@ -425,7 +424,6 @@
                           clearInterval(pollingInterval); 
                           pollingInterval = null;
                           currentTxData.status = orderData["Trạng thái"];
-                          currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
                           renderData(currentTxData);
                           if (isPaid) showToast("Giao dịch thành công!");
                           if (isFailed) showToast("Giao dịch đã đóng!");
@@ -436,7 +434,8 @@
           }
       };
 
-      pollingInterval = setInterval(checkData, 1600); 
+      // Tần suất gửi yêu cầu quét được đặt thành 3 giây
+      pollingInterval = setInterval(checkData, 3000); 
     }
 
     function downloadQR() {
