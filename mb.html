@@ -58,6 +58,8 @@
     .copy-item { display: flex; justify-content: space-between; align-items: center; padding: clamp(8px, 1.5vh, 12px) 14px; background: var(--item-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; transition: all 0.2s; }
     .copy-item:active { transform: scale(0.98); background: rgba(255,255,255,0.05); border-color: var(--primary-glow); }
     .copy-info { display: flex; flex-direction: column; overflow: hidden; padding-right: 10px; width: 100%; }
+    
+    /* Cập nhật font chữ cho tiêu đề: không còn in hoa toàn bộ */
     .copy-lbl { font-size: 11.5px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.3px; margin-bottom: 3px; }
     .copy-val { font-size: 14px; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .copy-val.highlight { color: var(--primary); font-size: 16px; text-shadow: 0 0 8px var(--primary-glow); }
@@ -109,7 +111,7 @@
       <div class="loader-card">
         <div class="loader-core"><div class="loader-ring"></div><div class="loader-ring"></div><div class="loader-dot"></div></div>
         <p style="color: var(--primary); font-size: 16px; font-weight: 800; margin: 0 0 8px 0; letter-spacing: 1px; text-shadow: 0 0 8px var(--primary-glow);">Đang đồng bộ</p>
-        <p style="color: var(--text-muted); font-size: 13px; font-weight: 500; margin: 0;">Đang khởi tạo kết nối an toàn...</p>
+        <p style="color: var(--text-muted); font-size: 13px; font-weight: 500; margin: 0;">Mã hóa dữ liệu bảo mật AI...</p>
       </div>
     </div>
 
@@ -225,23 +227,24 @@
 
   <script>
     // ==============================================================
-    // 🔧 CẤU HÌNH NGÂN HÀNG
+    // 🔧 CẤU HÌNH NGÂN HÀNG (SỬA DÒNG NÀY CHO TỪNG FILE)
     // ==============================================================
     const BANK_ID = 'mb';                      
     const BANK_NAME = 'MB Bank';               
     const ACCOUNT_NO = 'VQRQAJLBD8864';        
     const ACCOUNT_NAME = 'DINH VIET TRUONG';   
     
-    // 🔗 2 ĐƯỜNG LINK LUÂN PHIÊN GET DỮ LIỆU ĐỂ GIẢM TẢI
-    const API_URL_1 = "https://script.google.com/macros/s/AKfycbzAlGEH3r3yHIGW2HYcYZX2wxf5rTYqtrLhqOe6as9RHifV_BpscnB7PvWtDyxc5cl4ZQ/exec";
-    const API_URL_2 = "https://script.google.com/macros/s/AKfycbzOxkqvXRnuzC-Ek8AUlutoAm7jsSgAYG-lGi8g0kxoV4UZ7FSIf7lCePQw3334ltubqw/exec";
+    // API 1: Google Sheet Quản lý trạng thái chung
+    const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbxGNzPtSc-oZjO-yq3GrqaXrvW1nnqJ-6yOGfD-Jv4ZzxorQQfHFGa9LvtOPg2CmHqv2w/exec";
+    
+    // API 2: Lịch sử giao dịch Ngân Hàng trực tiếp (Bank Feed siêu tốc)
+    const BANK_FEED_API = "https://script.google.com/macros/s/AKfycbyTwyaKpLIydE7u0sosrDOPVCj2VG0xCq1r2Hwda8U6sQ7s7AXNAEIjwNiBnr2zVrJ2/exec";
     // ==============================================================
 
     let currentId = "";
     let urlParams;
     let pollingInterval;
     let currentTxData = {};
-    let useUrl1 = true;
 
     function switchScreen(screenName) {
       document.getElementById('screen-loading').classList.remove('active');
@@ -263,36 +266,36 @@
       document.getElementById('cp-name').innerText = ACCOUNT_NAME;
 
       urlParams = new URLSearchParams(window.location.search);
-      // Dùng ?net=Mã giao dịch
-      currentId = (urlParams.get('net') || "").trim();
+      currentId = (urlParams.get('id') || "").trim();
+      const am = urlParams.get('am'); 
+      const nd = urlParams.get('nd'); 
       
       if (!currentId) {
-        showError("Mã liên kết rỗng hoặc không hợp lệ.");
+        showError("Mã liên kết rỗng hoặc không tồn tại.");
         return;
       }
 
-      currentTxData = { id: currentId, amount: "0", content: "---", status: "Chờ thanh toán" };
+      currentTxData = { id: currentId, amount: am || "0", content: nd || "---", status: "Chờ thanh toán" };
 
-      switchScreen('loading');
-      fetchFirstData();
+      if (am && nd) {
+          renderData(currentTxData);
+          switchScreen('bill');
+          startPolling();
+      } else {
+          switchScreen('loading');
+          fetchFirstData();
+      }
     };
 
-    // Hàm gọi dữ liệu lần đầu, có tính năng Fallback (Nếu URL 1 lỗi, thử URL 2)
-    function fetchFirstData(useFallback = false) {
-      const targetUrl = useFallback ? API_URL_2 : API_URL_1;
-      
-      fetch(targetUrl + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success || result.status === "success") {
-          let orderData = Array.isArray(result.data) ? result.data[0] : result.data;
-          
-          if(orderData && orderData["Mã giao dịch"]) {
-            currentTxData.amount = orderData["Số tiền"] || currentTxData.amount;
-            currentTxData.content = orderData["Nội dung"] || currentTxData.content;
-            currentTxData.status = orderData["Trạng thái"] || "Chờ thanh toán";
-            currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
+    function fetchFirstData() {
+      fetch(GOOGLE_API_URL + "?id=" + currentId + "&t=" + new Date().getTime(), { cache: 'no-store' })
+        .then(res => res.json())
+        .then(result => {
+          if (result.success && result.data) {
+            if (!result.data.amount || result.data.amount === "0" || result.data.amount === "") result.data.amount = currentTxData.amount;
+            if (!result.data.content || result.data.content === "---" || result.data.content === "") result.data.content = currentTxData.content;
             
+            currentTxData = result.data;
             renderData(currentTxData);
             switchScreen('bill');
             
@@ -301,19 +304,10 @@
             
             if (!isFinished) startPolling();
           } else {
-             showError("Không tìm thấy mã đơn hàng này trên hệ thống.");
+            showError(result.message || "Không tìm thấy dữ liệu trên máy chủ.");
           }
-        } else {
-          // Bắt lỗi nếu server trả về status lỗi, thử phương án dự phòng
-          if(!useFallback) fetchFirstData(true);
-          else showError("Lỗi đồng bộ dữ liệu từ máy chủ.");
-        }
-      })
-      .catch(err => {
-          // Bắt lỗi kết nối mạng, thử phương án dự phòng
-          if(!useFallback) fetchFirstData(true);
-          else showError("Lỗi kết nối máy chủ. Vui lòng kiểm tra lại mạng.");
-      });
+        })
+        .catch(err => showError("Lỗi kết nối AI. Vui lòng thử lại."));
     }
 
     function renderData(data) {
@@ -363,39 +357,56 @@
       if(pollingInterval) clearInterval(pollingInterval);
       
       const checkData = function() {
-          if (!pollingInterval) return;
-
-          // Cập nhật: Luân phiên 2 URL mỗi lần quét để giảm tải
-          const targetUrl = useUrl1 ? API_URL_1 : API_URL_2;
-          useUrl1 = !useUrl1;
-
-          fetch(targetUrl + "?id=" + encodeURIComponent(currentId) + "&t=" + new Date().getTime(), { cache: 'no-store' })
+          // LUỒNG 1: QUÉT BANK FEED TRỰC TIẾP TỪ NGÂN HÀNG
+          fetch(BANK_FEED_API + "?t=" + new Date().getTime(), { cache: 'no-store' })
             .then(res => res.json())
             .then(result => {
-              if (result.success || result.status === "success") {
-                  let orderData = Array.isArray(result.data) ? result.data[0] : result.data;
-                  if (orderData && pollingInterval) {
-                      const statusStr = String(orderData["Trạng thái"] || "").trim().toLowerCase();
+                let txs = Array.isArray(result) ? result : (result.data || [result]);
+                let expAm = String(currentTxData.amount).replace(/[^0-9]/g, '');
+                let expCt = String(currentTxData.content).trim().toLowerCase();
+                if (!expAm || !expCt || expCt === "---") return; 
+
+                let matchedTx = txs.find(tx => {
+                    if (!tx["Số tiền"] || !tx["Nội dung"]) return false;
+                    let txAm = String(tx["Số tiền"]).replace(/[^0-9]/g, '');
+                    let txCt = String(tx["Nội dung"]).toLowerCase();
+                    return (txAm === expAm && txCt.includes(expCt));
+                });
+
+                if (matchedTx && pollingInterval) {
+                    clearInterval(pollingInterval); pollingInterval = null;
+                    currentTxData.status = "Đã thanh toán";
+                    currentTxData.paymentTime = matchedTx["Thời gian"] || "Vừa xong";
+                    renderData(currentTxData);
+                    showToast("Giao dịch thành công!");
+                }
+            })
+            .catch(e => {});
+
+          // LUỒNG 2: QUÉT SHEET (ĐỂ BẮT TRẠNG THÁI LỖI / ĐÃ HỦY / DỰ PHÒNG)
+          if (pollingInterval) {
+              fetch(GOOGLE_API_URL + "?action=checkStatus&id=" + currentId + "&t=" + new Date().getTime(), { cache: 'no-store' })
+                .then(res => res.json())
+                .then(result => {
+                  if (result.success && result.data && pollingInterval) {
+                      const statusStr = result.data.status ? String(result.data.status).trim().toLowerCase() : '';
                       const isPaid = (statusStr.includes('đã thanh toán') || statusStr.includes('thành công'));
                       const isFailed = (statusStr.includes('thất bại') || statusStr.includes('hủy') || statusStr.includes('lỗi') || statusStr.includes('quá hạn'));
                       
                       if (isPaid || isFailed) {
-                          clearInterval(pollingInterval); 
-                          pollingInterval = null;
-                          currentTxData.status = orderData["Trạng thái"];
-                          currentTxData.paymentTime = orderData["Thời gian thanh toán"] || "--:--";
+                          clearInterval(pollingInterval); pollingInterval = null;
+                          currentTxData = result.data;
                           renderData(currentTxData);
                           if (isPaid) showToast("Giao dịch thành công!");
                           if (isFailed) showToast("Giao dịch đã đóng!");
                       }
                   }
-              }
-            })
-            .catch(e => {});
+                })
+                .catch(e => {});
+          }
       };
 
-      // Cập nhật: Tốc độ quét rút ngắn lại thành 1.5s/lần
-      pollingInterval = setInterval(checkData, 1500); 
+      pollingInterval = setInterval(checkData, 1600); 
     }
 
     function downloadQR() {
