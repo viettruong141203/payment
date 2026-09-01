@@ -225,14 +225,14 @@
 
   <script>
     // ==============================================================
-    // 🔧 CẤU HÌNH API VÀ NGÂN HÀNG
+    // 🔧 CẤU HÌNH NGÂN HÀNG (SỬA DÒNG NÀY CHO TỪNG FILE)
     // ==============================================================
     const BANK_ID = 'mb';                      
     const BANK_NAME = 'MB Bank';               
     const ACCOUNT_NO = 'VQRQAJLBD8864';        
     const ACCOUNT_NAME = 'DINH VIET TRUONG';   
     
-    // API CHÍNH: Google Sheet Quản lý trạng thái (Chỉ dùng Link này)
+    // API CHÍNH (SẠCH): Tuyệt đối không gắn thêm đuôi ?id= trên dòng này
     const API_URL = "https://script.google.com/macros/s/AKfycbxLcE6Omn3QKXFi1SBB7A4CtsEjr-iB_qNQ5qrjy5AHagHsjTufNFA9MNqUTmq0ggle/exec";
     // ==============================================================
 
@@ -260,6 +260,7 @@
       document.getElementById('cp-acc').innerText = ACCOUNT_NO;
       document.getElementById('cp-name').innerText = ACCOUNT_NAME;
 
+      // URL Web hiển thị (trên GitHub) có chứa đuôi id. Lấy đuôi id đó ra:
       urlParams = new URLSearchParams(window.location.search);
       currentId = (urlParams.get('id') || "").trim();
       const am = urlParams.get('am'); 
@@ -277,7 +278,7 @@
     };
 
     function fetchFirstData() {
-      // SỬ DỤNG POST JSON VỚI KEY: action: "exportJSON"
+      // ĐÓNG GÓI JSON ĐỂ GỬI POST (Cấu trúc mới nhất)
       const payload = {
           "action": "exportJSON",
           "id": currentId
@@ -285,7 +286,7 @@
 
       fetch(API_URL, { 
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Vượt rào CORS Google Script
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload),
           cache: 'no-store' 
       })
@@ -294,7 +295,7 @@
         if (result.success && result.data) {
           let orderData = result.data;
 
-          // Mapping dữ liệu dựa trên Response mới của bạn
+          // Mapping dữ liệu tiếng Việt không dấu chuẩn theo API
           currentTxData.amount = orderData.soTien || currentTxData.amount;
           currentTxData.content = orderData.noiDung || currentTxData.content;
           currentTxData.status = orderData.trangThai || "Chờ thanh toán";
@@ -324,20 +325,24 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount && rawAmount !== "0" ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ" : "0 VNĐ";
 
+      // 1. Khối Chờ Thanh Toán
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
+      // 2. Khối Đã Thanh Toán
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount;
       document.getElementById('bl-paid-status').innerText = rawStatus || 'Đã thanh toán';
 
+      // 3. Khối Thất Bại
       document.getElementById('bl-failed-id').innerText = data.id;
       document.getElementById('bl-failed-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-failed-amount').innerText = displayAmount;
       document.getElementById('bl-failed-status').innerText = rawStatus || 'Đã hủy';
 
+      // Điều hướng
       if (isPaid) {
         document.getElementById('bill-unpaid').style.display = 'none';
         document.getElementById('bill-paid').style.display = 'flex';
@@ -357,7 +362,7 @@
       if(pollingInterval) clearInterval(pollingInterval);
       
       const checkData = function() {
-          // CHỈ QUÉT API CHÍNH BẰNG POST (2S/LẦN)
+          // BẮN LỆNH POST THEO CHU KỲ 2 GIÂY/LẦN
           if (pollingInterval) {
               const payload = {
                   "action": "exportJSON",
@@ -393,7 +398,7 @@
           }
       };
 
-      // QUÉT ĐÚNG 2S/LẦN THEO YÊU CẦU
+      // QUÉT ĐÚNG 2S/LẦN BẰNG POST THEO YÊU CẦU
       pollingInterval = setInterval(checkData, 2000); 
     }
 
