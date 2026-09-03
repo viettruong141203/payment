@@ -42,14 +42,12 @@
       filter: blur(40px);
     }
 
-    /* Đã thu nhỏ max-width và padding */
     .app-container { width: 100%; max-width: 380px; height: 100%; max-height: 100dvh; display: flex; flex-direction: column; position: relative; z-index: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 0; }
     
     .screen { display: none; flex-direction: column; flex-grow: 1; padding: 0 16px; justify-content: center; animation: fadeScale 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .screen.active { display: flex; }
     @keyframes fadeScale { 0% { opacity: 0; transform: scale(0.97) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
     
-    /* Card gọn hơn, giảm padding và gap */
     .card { 
       background: var(--glass-bg); 
       backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); 
@@ -59,7 +57,6 @@
       display: flex; flex-direction: column; gap: 12px;
     }
 
-    /* Badge nhỏ hơn */
     .header-badge {
       display: inline-flex; align-items: center; gap: 6px; align-self: center;
       background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);
@@ -69,7 +66,6 @@
     .pulse-dot { width: 6px; height: 6px; background: #60a5fa; border-radius: 50%; box-shadow: 0 0 10px #60a5fa; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
 
-    /* QR Code thu gọn */
     .qr-container { display: flex; flex-direction: column; align-items: center; }
     .qr-box {
       background: #ffffff; padding: 10px; border-radius: 20px;
@@ -86,7 +82,6 @@
     .btn-action:active { transform: scale(0.96); background: rgba(255,255,255,0.1); }
     .btn-action svg { width: 16px; height: 16px; }
 
-    /* List thông tin rút gọn padding */
     .info-list { display: flex; flex-direction: column; gap: 8px; }
     .info-row { 
       display: flex; justify-content: space-between; align-items: center; 
@@ -113,7 +108,6 @@
     .btn-copy:active { background: var(--primary); color: #fff; transform: scale(0.9); }
     .btn-copy svg { width: 15px; height: 15px; }
 
-    /* Màn hình Kết quả thu nhỏ */
     .result-icon { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; position: relative; }
     .result-icon svg { width: 32px; height: 32px; stroke-width: 2.5; position: relative; z-index: 1; }
     .icon-success { background: rgba(16, 185, 129, 0.1); color: var(--success); box-shadow: 0 0 30px rgba(16, 185, 129, 0.2); }
