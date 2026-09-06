@@ -44,6 +44,17 @@
     
     .card { background: var(--card-glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-radius: 28px; padding: clamp(16px, 3.5vh, 20px); box-shadow: 0 24px 40px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15); border: 1px solid var(--card-border); display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 12px); }
     
+    /* VÙNG LOGO CẮT NỀN TRONG SUỐT (ĐÃ PHÓNG TO) */
+    .bank-logo-container {
+      display: flex; justify-content: center; align-items: center; margin-bottom: 8px; margin-top: -5px;
+    }
+    .bank-logo-container img {
+      height: 65px; /* Phóng to logo lên 65px */
+      width: auto; object-fit: contain;
+      /* Tăng độ tỏa sáng để phù hợp với kích thước mới */
+      filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.4));
+    }
+
     .qr-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 2px; position: relative; }
     .qr-wrapper { position: relative; background: #fff; padding: 10px; border-radius: 20px; border: 2px solid var(--primary); box-shadow: 0 0 20px rgba(0, 229, 255, 0.3); margin-bottom: 12px; overflow: hidden; }
     .ai-scanner { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, transparent, var(--primary), transparent); box-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary); animation: scanAI 2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; z-index: 2; }
@@ -105,8 +116,8 @@
 
   <div class="app-container">
 
-    <!-- LOADING CORE -->
-    <div id="screen-loading" class="screen" style="align-items: center;">
+    <!-- TRẠNG THÁI LOADING -->
+    <div id="screen-loading" class="screen active" style="align-items: center;">
       <div class="loader-card">
         <div class="loader-core"><div class="loader-ring"></div><div class="loader-ring"></div><div class="loader-dot"></div></div>
         <p style="color: var(--primary); font-size: 16px; font-weight: 800; margin: 0 0 8px 0; letter-spacing: 1px; text-shadow: 0 0 8px var(--primary-glow);">Đang đồng bộ</p>
@@ -114,7 +125,7 @@
       </div>
     </div>
 
-    <!-- MÀN HÌNH LỖI -->
+    <!-- TRẠNG THÁI LỖI -->
     <div id="screen-error" class="screen" style="align-items: center;">
       <div class="card" style="width: 100%; text-align: center; border-color: rgba(255,23,68,0.5); box-shadow: 0 0 30px rgba(255,23,68,0.2);">
         <div style="font-size: 44px; margin-bottom: 12px; animation: popIn 0.5s;">⚠️</div>
@@ -123,12 +134,18 @@
       </div>
     </div>
 
-    <!-- LUỒNG THANH TOÁN CHÍNH -->
+    <!-- MÀN HÌNH THANH TOÁN CHÍNH -->
     <div id="screen-bill" class="screen">
       
       <!-- 1. CHỜ THANH TOÁN -->
       <div id="bill-unpaid" style="display: flex; flex-direction: column; width: 100%;">
         <div class="card">
+          
+          <!-- LOGO NGÂN HÀNG CẮT NỀN TRONG SUỐT (ĐÃ PHÓNG TO) -->
+          <div class="bank-logo-container">
+            <img id="bank-logo-img" src="" alt="Bank Logo">
+          </div>
+
           <div class="qr-section">
             <div class="qr-wrapper">
               <div class="ai-scanner"></div>
@@ -226,14 +243,17 @@
 
   <script>
     // ==============================================================
-    // 🔧 CẤU HÌNH NGÂN HÀNG & 4 LINK PHÂN TẢI
+    // 🔧 CẤU HÌNH NGÂN HÀNG & API ĐA LUỒNG
     // ==============================================================
     const BANK_ID = '970436';                      
     const BANK_NAME = 'VIETCOMBANK';               
-    const ACCOUNT_NO = 'TGE60603130832VCB'; // Bạn có thể đổi lại thành VQRQAJLHK1914 nếu cần      
+    const ACCOUNT_NO = 'TGE60603130832VCB';        
     const ACCOUNT_NAME = 'DINH VIET TRUONG';   
     
-    // Hệ thống 4 URL luân phiên phân tải máy chủ
+    // 🏦 LINK LOGO NGÂN HÀNG (Ảnh PNG cắt nền trong suốt từ VietQR)
+    const BANK_LOGO = "https://api.vietqr.io/img/MB.png";
+
+    // 4 URL LUÂN PHIÊN - ĐẢM BẢO KHÔNG BỊ TẮC NGHẼN
     const API_URLS = [
       "https://script.google.com/macros/s/AKfycbzOxkqvXRnuzC-Ek8AUlutoAm7jsSgAYG-lGi8g0kxoV4UZ7FSIf7lCePQw3334ltubqw/exec",
       "https://script.google.com/macros/s/AKfycbyFmd1w2-pFsgTmH_PN537uv6Cnjw4eZT_SQ3qOniF98qsgyI72p6ulOgW3gGsebXCe4g/exec",
@@ -263,11 +283,13 @@
     }
 
     window.onload = function() {
+      // 1. Áp dụng cấu hình giao diện
+      document.getElementById('bank-logo-img').src = BANK_LOGO;
       document.getElementById('cp-bank').innerText = BANK_NAME;
       document.getElementById('cp-acc').innerText = ACCOUNT_NO;
       document.getElementById('cp-name').innerText = ACCOUNT_NAME;
 
-      // Lấy ID từ ?net=
+      // 2. Nhận diện ID từ ?net=
       urlParams = new URLSearchParams(window.location.search);
       currentId = (urlParams.get('net') || "").trim();
       
@@ -283,7 +305,6 @@
     };
 
     function fetchInitialData() {
-      // Đua tốc độ ở lần đầu: Gọi cả 4 URL
       const promises = API_URLS.map(url => {
           return fetch(url + "?id=" + encodeURIComponent(currentId))
               .then(res => res.json())
@@ -316,7 +337,6 @@
         }
       })
       .catch(err => {
-         console.error(err);
          showError("Lỗi kết nối máy chủ đa luồng. Vui lòng thử lại.");
       });
     }
@@ -332,7 +352,7 @@
       let displayAmount = rawAmount && rawAmount !== "0" ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "0";
 
       // 1. Chờ Thanh Toán
-      document.getElementById('cp-amount').innerText = displayAmount + " VNĐ";
+      document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
@@ -368,11 +388,10 @@
       const checkData = function() {
           if (!pollingInterval) return;
 
-          // Luân phiên đảo chiều qua 4 URL
           const targetUrl = API_URLS[currentUrlIndex];
           currentUrlIndex = (currentUrlIndex + 1) % API_URLS.length;
 
-          // Chạy đa luồng song song, truyền ?id=
+          // Gọi luân phiên với tham số ?id=
           fetch(targetUrl + "?id=" + encodeURIComponent(currentId))
             .then(res => res.json())
             .then(result => {
@@ -395,10 +414,10 @@
                   }
               }
             })
-            .catch(e => { });
+            .catch(e => { /* Lỗi độc lập 1 luồng được bỏ qua để giữ vòng lặp */ });
       };
 
-      // QUÉT LUÂN PHIÊN 0.9 GIÂY/LẦN
+      // QUÉT LUÂN PHIÊN LIÊN TỤC 0.9 GIÂY/LẦN
       pollingInterval = setInterval(checkData, 900); 
     }
 
