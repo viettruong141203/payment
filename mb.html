@@ -44,14 +44,15 @@
     
     .card { background: var(--card-glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-radius: 28px; padding: clamp(16px, 3.5vh, 20px); box-shadow: 0 24px 40px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15); border: 1px solid var(--card-border); display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 12px); }
     
-    /* VÙNG LOGO CẮT NỀN TRONG SUỐT */
+    /* VÙNG LOGO CẮT NỀN TRONG SUỐT (ĐÃ PHÓNG TO) */
     .bank-logo-container {
-      display: flex; justify-content: center; align-items: center; margin-bottom: 4px;
+      display: flex; justify-content: center; align-items: center; margin-bottom: 8px; margin-top: -5px;
     }
     .bank-logo-container img {
-      height: 38px; width: auto; object-fit: contain;
-      /* Hiệu ứng đổ bóng sáng giúp logo nổi bật trên nền tối mà không cần phông trắng */
-      filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.3));
+      height: 65px; /* Phóng to logo lên 65px */
+      width: auto; object-fit: contain;
+      /* Tăng độ tỏa sáng để phù hợp với kích thước mới */
+      filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.4));
     }
 
     .qr-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 2px; position: relative; }
@@ -140,7 +141,7 @@
       <div id="bill-unpaid" style="display: flex; flex-direction: column; width: 100%;">
         <div class="card">
           
-          <!-- LOGO NGÂN HÀNG CẮT NỀN TRONG SUỐT -->
+          <!-- LOGO NGÂN HÀNG CẮT NỀN TRONG SUỐT (ĐÃ PHÓNG TO) -->
           <div class="bank-logo-container">
             <img id="bank-logo-img" src="" alt="Bank Logo">
           </div>
@@ -350,10 +351,12 @@
       let rawAmount = String(data.amount).replace(/[^0-9]/g, '');
       let displayAmount = rawAmount && rawAmount !== "0" ? rawAmount.replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "0";
 
+      // 1. Chờ Thanh Toán
       document.getElementById('cp-amount').innerText = displayAmount;
       document.getElementById('cp-content').innerText = data.content;
       document.getElementById('qr-img').src = 'https://img.vietqr.io/image/' + BANK_ID + '-' + ACCOUNT_NO + '-qr_only.png?amount=' + rawAmount + '&addInfo=' + encodeURIComponent(data.content || '') + '&accountName=' + encodeURIComponent(ACCOUNT_NAME);
       
+      // 2. Kết quả
       document.getElementById('bl-paid-id').innerText = data.id;
       document.getElementById('bl-paid-time').innerText = data.paymentTime || '--:--';
       document.getElementById('bl-paid-amount').innerText = displayAmount + " VNĐ";
@@ -388,6 +391,7 @@
           const targetUrl = API_URLS[currentUrlIndex];
           currentUrlIndex = (currentUrlIndex + 1) % API_URLS.length;
 
+          // Gọi luân phiên với tham số ?id=
           fetch(targetUrl + "?id=" + encodeURIComponent(currentId))
             .then(res => res.json())
             .then(result => {
@@ -410,9 +414,10 @@
                   }
               }
             })
-            .catch(e => { });
+            .catch(e => { /* Lỗi độc lập 1 luồng được bỏ qua để giữ vòng lặp */ });
       };
 
+      // QUÉT LUÂN PHIÊN LIÊN TỤC 0.9 GIÂY/LẦN
       pollingInterval = setInterval(checkData, 900); 
     }
 
@@ -435,7 +440,7 @@
         ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 28px Arial, sans-serif'; ctx.fillText(amount, canvas.width / 2, 470);
         ctx.fillStyle = '#94A3B8'; ctx.font = '16px Arial, sans-serif'; ctx.fillText('Nội dung: ' + content, canvas.width / 2, 510);
         
-        ctx.fillStyle = '#64748B'; ctx.font = 'italic 14px Arial, sans-serif'; ctx.fillText('Hệ thống xử lý giao dịch tự động', canvas.width / 2, 580);
+        ctx.fillStyle = '#64748B'; ctx.font = 'italic 14px Arial, sans-serif'; ctx.fillText('Hệ thống xử lý giao dịch tự động AI', canvas.width / 2, 580);
         
         const link = document.createElement('a'); link.download = 'QR_' + currentId + '.png'; link.href = canvas.toDataURL('image/png'); link.click();
       };
